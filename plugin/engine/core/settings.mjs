@@ -141,6 +141,8 @@ export function settingsReview(filmDir,{write=false}={}) {
     for(const item of items) {
       lines.push('',`## ${labels[item.ref.kind]}：${item.name}（${item.ref.version} / ${item.state}）`,`${item.status==='reused'?'沿用已确认':item.status==='changed'?'变化待复审':'新增待审'} · ${item.importance==='key'?'重点':'简化'}`,'',item.description,item.notes);
       if(item.ref.kind==='character')lines.push('','请实际看图确认：正面、侧面、背面、表情和动作参考均在同一张图中，造型、服装、配色与比例一致；文件数量检查不能代替审图。');
+      if(item.ref.kind==='prop'&&item.references.length)lines.push('','请实际看图确认：完整外形、颜色材质、关键细节、大小参照和剧情状态清楚；所需角度、开合或完整／破损状态标注明确。');
+      if(item.ref.kind==='scene'&&item.references.length)lines.push('','请实际看图确认：全景布局、出入口、主要物件位置、空间比例、时间天气和光线方向明确；需要时补俯视布局及其他机位，固定位置保持一致。');
       for(const ref of item.references)lines.push('',`![${item.name}](${path.join(root,ref.path)})`);
     }
     if(problems.length)lines.push('','## 待补齐',...problems.map(x=>'- '+x));
