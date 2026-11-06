@@ -1,3 +1,4 @@
+import {approveFixtureContent,approveFixtureFrames} from '../helpers/content.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -24,6 +25,7 @@ function fixture(t) {
     downloadVideo: async ({output}) => fs.writeFileSync(output,'video'),
   };
   approveEmptySettings(dir,job.style.id);
+  approveFixtureContent(job);
   return {dir,shot,job,api,counts};
 }
 test('plan is read-only and unknown estimates block paid calls', async t => {
@@ -52,6 +54,7 @@ test('cumulative task ceiling survives a new revision and a fresh approval', asy
   const f=fixture(t);
   generation.approveGeneration(f.job,'image',{source:'image approved'});
   await generation.ensureImage(f.job,f.shot,{api:f.api});
+  approveFixtureFrames(f.job);
   generation.approveGeneration(f.job,'video',{source:'video approved'});
   await generation.ensureVideo(f.job,f.shot,{api:f.api});
   fs.writeFileSync(f.shot.path,JSON.stringify({image_prompt:'cat',video_prompt:'cat jumps'}));
@@ -106,6 +109,7 @@ test('invalid first-frame file does not consume the only video task',async t=>{
   const f=fixture(t);
   generation.approveGeneration(f.job,'image',{source:'image approved'});
   await generation.ensureImage(f.job,f.shot,{api:f.api}); // fixture deliberately writes non-PNG bytes
+  approveFixtureFrames(f.job);
   generation.approveGeneration(f.job,'video',{source:'video approved'});
   await assert.rejects(generation.ensureVideo(f.job,f.shot,{env:{OPENAI_API_KEY:'test-only',ARK_API_KEY:'test-only'}}),/PNG|图片/);
   const plan=generation.generationPlan(f.job,'video');

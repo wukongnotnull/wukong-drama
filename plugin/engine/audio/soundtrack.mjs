@@ -168,7 +168,8 @@ function writeVoiceCues(ctx, lines, vo, log) {
  */
 export async function mixSoundtrack(filmDir, { log = console.log, aspect = null, includeNative = true } = {}) {
   const ctx=loadFilm(filmDir,{requireShots:false,aspect}),audio=ctx.film.audio||{};
-  const native=includeNative&&(ctx.film.generation?.video?.generate_audio !== false)?nativeAudioTracks(ctx):[];
+  const soundCtx=ctx.variant.isMain?ctx:loadFilm(filmDir,{requireShots:false});
+  const native=includeNative&&(ctx.film.generation?.video?.generate_audio !== false)?nativeAudioTracks(soundCtx):[];
   const files=[...native,...(audio.tracks||[]),...(audio.voices||[])].filter(t=>t.file).map(t=>path.resolve(ctx.filmDir,t.file));
   const signature=audio.build?null:digest({audio,native,shots:ctx.shots.map(s=>[s.id,s.duration]),style:ctx.style.loudness,files:files.map(file=>[file,fileDigest(file)]),engine:treeEvidence(path.join(ENGINE_ROOT,'audio'))});
   const value=await runStage(ctx.filmDir,{stage:'soundtrack',aspect:ctx.variant.aspect,signature,log,onReuse:()=>{if(audio.voices?.length)log('  · 声音同步点未变化（完整声轨与同步点文件已核对）');},run:async()=>{
@@ -176,7 +177,7 @@ export async function mixSoundtrack(filmDir, { log = console.log, aspect = null,
     return {value,outputs:[path.join(ctx.filmDir,'film.json'),...(value.mix?[value.mix]:[]),path.join(ctx.filmDir,'.cache/voice-sources.json'),...value.tracks.map(t=>t.file)]};
   }});
   const report=saveAudioReview(ctx,value.mix);
-  const outputs=['声轨审听.md','声轨审听.json'].map(f=>path.join(ctx.filmDir,'review',f));
+  const outputs=['声轨审听.md','声轨审听.json'].map(f=>path.join(ctx.filmDir,'review',ctx.variant.review(f)));
   saveSfxReview(ctx,value.mix,value.sfxAudit);
   if(value.sfxAudit)outputs.push(path.join(ctx.filmDir,'review','音效电平审计.json'));
   rememberArtifacts(ctx.filmDir,{stage:'review:audio-notes',aspect:ctx.variant.aspect,signature:report.sha256,outputs,value:outputs});
@@ -191,7 +192,8 @@ async function mixSoundtrackFresh(filmDir, { log = console.log, aspect = null, i
   checkCueNames(audio.voices || []);
   const genDir = path.join(ctx.filmDir, 'audio', 'generated');
   fs.mkdirSync(genDir, { recursive: true });
-  const tracks = includeNative&&(ctx.film.generation?.video?.generate_audio !== false) ? nativeAudioTracks(ctx).map(t=>({...t,role:'track',gain:0})) : [];
+  const soundCtx=ctx.variant.isMain?ctx:loadFilm(filmDir,{requireShots:false});
+  const tracks = includeNative&&(ctx.film.generation?.video?.generate_audio !== false) ? nativeAudioTracks(soundCtx).map(t=>({...t,role:'track',gain:0})) : [];
   let lib = null;
   let sfx = null;
 
@@ -242,7 +244,7 @@ async function mixTracks(tracks, D, out) {
   const inputs = tracks.flatMap((t) => ['-i', t.file]);
   const chains = tracks.map((t, i) => {
     const ms = Math.round((t.start || 0) * 1000);
-    const trim = t.duration ? `atrim=duration=${t.duration},asetpts=PTS-STARTPTS,` : '';
+    const trim = t.duration || t.sourceStart ? `atrim=start=${t.sourceStart||0}${t.duration?`:duration=${t.duration}`:''},asetpts=PTS-STARTPTS,` : '';
     return `[${i}:a]${trim}aformat=sample_rates=48000:channel_layouts=stereo,adelay=${ms}|${ms},volume=${t.gain || 0}dB[a${i}]`;
   });
   const fadeOut = Math.min(1.2, D * 0.1);

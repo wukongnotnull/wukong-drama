@@ -66,6 +66,10 @@
           "note": {
             "type": "string"
           },
+          "transition": {
+            "type": "string",
+            "description": "进入本镜的转场；连续表示同一画面接续，允许沿用上一镜景别"
+          },
           "size": {
             "type": "string",
             "enum": [
@@ -489,6 +493,10 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
+            "model_family": {
+              "type": "string",
+              "enum": ["seedance-1.0", "seedance-2.0", "seedance-2.0-fast", "seedance-2.0-mini", "seedance-2.5"]
+            },
             "provider": {
               "type": "string"
             },

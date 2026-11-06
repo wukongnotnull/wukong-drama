@@ -7,6 +7,7 @@
 | 领域与导出边界 | unit/module-boundaries.test.mjs、integration/architecture-evidence.test.mjs |
 | 生成与图片批次 | unit/generation-*.test.mjs、unit/image-source.test.mjs、integration/generation-pipeline.test.mjs |
 | 当前工程与风格格式 | unit/film-format.test.mjs、unit/model-style-format.test.mjs |
+| 内容批准与声画选段 | unit/content-approval.test.mjs、integration/native-audio-editing.test.mjs、integration/generation-pipeline.test.mjs |
 | 制作流程与旧签批迁移 | unit/state.test.mjs、unit/director-flow.test.mjs、integration/flow-guard.test.mjs |
 | 设定、系列与批准 | unit/settings.test.mjs、unit/series.test.mjs、unit/approval.test.mjs |
 | 交付与恢复 | unit/final-delivery.test.mjs、integration/final-delivery.test.mjs、integration/recovery-delivery.test.mjs |

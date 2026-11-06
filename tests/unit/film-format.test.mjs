@@ -7,6 +7,10 @@ function fixture(t,audio,extra={}){
  fs.writeFileSync(path.join(dir,'s01.json'),'{}');const file=path.join(dir,'film.json');
  fs.writeFileSync(file,JSON.stringify({title:'format',style:'ink-wash',size:[160,90],fps:24,seed:1,generation:{image:{provider:'openai'},video:{provider:'seedance'}},shots:[{id:'s01',file:'s01.json',duration:1}],...(audio?{audio}:{}),...extra}));return {dir,file};
 }
+test('model_family can identify a named Seedance endpoint in a valid film',t=>{
+ const f=fixture(t,null,{generation:{video:{provider:'seedance',model:'ep-example',model_family:'seedance-2.0',generate_audio:true}}});
+ assert.equal(loadFilm(f.dir).film.generation.video.model_family,'seedance-2.0');
+});
 for(const audio of [{voiceover:[]},{vo_source:'none'},{voiceover:[],voices:[],vo_source:'none',voice_source:'none'}])test(`old audio fields are rejected without rewriting ${Object.keys(audio)}`,t=>{
  const f=fixture(t,audio),before=fs.readFileSync(f.file);assert.throws(()=>loadFilm(f.dir),/voiceover|vo_source/);assert.deepEqual(fs.readFileSync(f.file),before);
 });

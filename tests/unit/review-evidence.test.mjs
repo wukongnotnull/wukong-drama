@@ -6,6 +6,16 @@ import path from 'node:path';
 import * as review from '../../plugin/engine/core/review-evidence.mjs';
 import { fileDigest } from '../../plugin/engine/core/evidence.mjs';
 
+test('a short declared music section cannot stand for listening to a whole long film',t=>{
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'wkd-full-review-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
+  const mix=path.join(dir,'mix.wav');fs.writeFileSync(mix,'audio');
+  const check=(section,range)=>({section,range,reviewer:'实际审阅者',reviewedAt:'2026-11-06T10:00:00Z',verdict:'accepted',note:'已听本区间',evidence:'实际播放对应区间'});
+  const notes={version:1,audio:{sha256:fileDigest(mix),sections:[{id:'music',label:'音乐',range:[0,1]}],checks:[check('opening',[0,15]),check('music',[0,1])]}};
+  const result=review.audioReview({mix,duration:90,shots:[{id:'s01',start:0,duration:45},{id:'s02',start:45,duration:45}],notes});
+  assert.equal(result.status,'not-listened');
+  for(const id of ['full-film','shot:s01','shot:s02','cut:s01:s02'])assert.ok(result.windows.some(w=>w.covers.includes(id)));
+});
+
 test('实际审听范围、来源失效；QC人工接受不改变原测量和硬门槛',t=>{
   assert.equal(typeof review.audioReview,'function');
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'wkd-review-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));

@@ -23,7 +23,8 @@ export const HELP = `wkd —— wukong-drama 引擎命令行。
   wkd status [项目目录]             各片制作进度（恢复在制项目）
   wkd resume <片目录> [--json]       核实已完成产物、失败阶段和待存档签批
   wkd delivery <片目录> --host codex|claude|generic [--aspect all|9:16] [--json]  生成存在性与新旧状态交付清单
-  wkd signoff <片目录> "<审片结论>" [--step N] [--settings-signature 摘要]   第 5 道绑定设定审查，其他审片节点签批：记录进度并做定版快照
+  wkd content-review <片目录> --step 4|6|7 [--only s01,s02] [--aspect 9:16]   查看当前内容版本；不签批、不生成
+  wkd signoff <片目录> "<审片结论>" [--step N] [--content-signature 摘要] [--settings-signature 摘要]   第4/6/7道绑定内容，第5道绑定设定；记录进度并做定版快照
   wkd qc <片目录> [--proxy] [--aspect 9:16]       量化技术质检（QC）
   wkd still <片目录> [--frames N] [--at s02:1.5,s03:2] [--proxy] [--aspect 9:16]   静帧 + 接触表
   wkd animatic <片目录> [--proxy] [--aspect 9:16]   动态分镜：代表帧按镜头时长排成粗片并配上声轨

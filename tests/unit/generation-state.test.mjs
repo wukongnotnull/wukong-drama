@@ -1,3 +1,4 @@
+import {approveFixtureContent,approveFixtureFrames} from '../helpers/content.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -19,6 +20,7 @@ function fixture(t) {
   job.shots = [shot];
   fs.writeFileSync(path.join(dir, 'film.json'), JSON.stringify({ ...job.film, shots: [{ file: 'shots/s01.json' }] }));
   approveEmptySettings(dir,job.style.id);
+  approveFixtureContent(job);
   return { dir, definition, shot, job };
 }
 function mockApi() {
@@ -31,8 +33,10 @@ function mockApi() {
   };
 }
 async function approve(f, api) {
+  approveFixtureContent(f.job);
   generation.approveGeneration(f.job, 'image', { source: 'test user approved image batch' });
   await generation.ensureImage(f.job, f.shot, { api });
+  approveFixtureFrames(f.job);
   generation.approveGeneration(f.job, 'video', { source: 'test user approved video from reviewed image' });
 }
 test('generated sources persist and proxy/full requests share one paid job', async t => {
@@ -43,6 +47,17 @@ test('generated sources persist and proxy/full requests share one paid job', asy
   const second = await generation.ensureVideo({ ...f.job, proxy: true }, f.shot, { api });
   assert.equal(first, second); assert.ok(first.includes('/assets/generated/'));
   assert.deepEqual(api.counts, { images: 1, submits: 1, polls: 1, downloads: 1 });
+});
+
+test('local source selection reuses an existing paid job even without new content bindings',async t=>{
+  const f=fixture(t),api=mockApi();f.shot.duration=1;
+  await approve(f,api);const file=await generation.ensureVideo(f.job,f.shot,{api});
+  const before=generation.generationPlan(f.job,'video');
+  const definition=JSON.parse(fs.readFileSync(f.shot.path));fs.writeFileSync(f.shot.path,JSON.stringify({...definition,source_start:1}));
+  const after=generation.generationPlan(f.job,'video');
+  assert.equal(before.items[0].signature,after.items[0].signature);assert.notEqual(before.signature,after.signature);
+  fs.rmSync(path.join(f.dir,'.wkd/content-approvals.json'));fs.rmSync(path.join(f.dir,'story.md'));
+  assert.equal(await generation.ensureVideo(f.job,f.shot,{api}),file);assert.equal(api.counts.submits,1);
 });
 test('poll timeout and download failure resume the same task without resubmission', async t => {
   const f = fixture(t), api = mockApi();
@@ -166,6 +181,7 @@ test('short-shot video plan explains edit time, new source time and only-selecte
 test('video approval rejects a changed displayed signature before writing approval', t => {
   const f=fixture(t);
   fs.writeFileSync(f.shot.path,JSON.stringify({...f.definition,image:'assets/ref.png'}));
+  approveFixtureFrames(f.job);
   const displayed=generation.generationPlan(f.job,'video');
   f.job.film.generation.budget.video_cny=200;
   assert.throws(()=>generation.approveGeneration(f.job,'video',{source:'start this batch',expectedSignature:displayed.signature}),/计划.*变化|签名/);

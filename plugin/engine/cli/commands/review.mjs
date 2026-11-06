@@ -17,6 +17,8 @@ import { writeFinalDelivery, formatFinalDelivery, recordFinalEvidence, prepareFi
 import { digest, readJson, atomicJson, treeEvidence } from '../../core/evidence.mjs';
 import { fail } from '../context.mjs';
 import { approveSettings, settingsReview, requireSettingsInventory, resolveShotSettings, settingSnapshotFiles } from '../../core/settings.mjs';
+import {contentReview} from '../../generation/generation.mjs';
+import {recordContentApproval,requireContentApproval} from '../../core/content-approval.mjs';
 
 const SHOT_SIZE_STEP = 6;
 const SUBTITLES_STEP = 9;
@@ -25,7 +27,20 @@ const FINAL_REVIEW_STEP = 12;
 const VARIANT_STEP = 13;
 
 export function reviewCommands({ pos, opt, log, aspectOpt }) {
+  const contentContext=()=>{
+    const ctx=loadFilm(pos[0],{requireShots:false,aspect:aspectOpt()});
+    if(opt('only')){
+      const ids=String(opt('only')).split(',');
+      if(ids.some(id=>!ctx.shots.some(s=>s.id===id)))throw new Error('--only 含未知镜号');
+      ctx.shots=ctx.shots.filter(s=>ids.includes(s.id));
+    }
+    return ctx;
+  };
   return {
+    'content-review':async()=>{
+      if(!pos[0])throw new Error('content-review 需要片目录与 --step 4|6|7');
+      log(JSON.stringify(contentReview(contentContext(),Number(opt('step'))),null,2));
+    },
     'delivery': async () => {
       if(!pos[0]) throw new Error('用法：wkd delivery <片目录> --host codex|claude|generic [--json]');
       if(opt('record')&&!opt('final'))throw new Error('--record 需要 --final');
@@ -38,7 +53,19 @@ export function reviewCommands({ pos, opt, log, aspectOpt }) {
       if (!pos[0] || !pos[1]) fail('用法：wkd signoff <片目录> "<审片结论>" [--step N]');
       const step = opt('step') ? Number(opt('step')) : null;
       if (step && !PRODUCTION_STEPS[step]) fail(`--step 取 1–${LAST_STEP}`);
+      const pendingFile=path.join(path.resolve(pos[0]),'.wkd/pending-approval.json');
+      const pending=readJson(pendingFile);
+      const pendingFlow=pending?.flow??pending?.deliveryApproval?.approval?.flow;
+      const legacyPending=pending&&pendingFlow!==FLOW_VERSION;
+      if(legacyPending&&pending.status!=='completed'&&(!opt('approval-id')||String(opt('approval-id'))===pending.id))throw new Error('旧流程待存档批准已保留；请复核当前材料，用当前 --step 和新的 --approval-id 签批，不可自动续用旧流程版本批准');
       let note = pos[1];
+      const contentCtx=[4,6,7].includes(step)?contentContext():null;
+      const content=contentCtx?contentReview(contentCtx,step):null;
+      if(content){
+        if(opt('content-signature')!==content.signature)throw new Error('内容材料已变化或缺少 --content-signature；请先 content-review 并展示当前材料，再记录明确批准');
+        if(step>4)requireContentApproval(contentCtx,contentReview(contentCtx,4));
+        if(step===7)requireContentApproval(contentCtx,contentReview(contentCtx,6));
+      }
       const settingsSignature=step===5?settingsReview(pos[0]).signature:null;
       if(step===5&&settingsSignature!==opt('settings-signature'))throw new Error('需要当前设定审查签名 --settings-signature；请展示材料并记录用户实际确认');
       // 第 6 道分镜签批前检查设定和景别；--force 只允许景别例外。
@@ -50,16 +77,11 @@ export function reviewCommands({ pos, opt, log, aspectOpt }) {
         if (problems.length && !opt('force')) fail(`景别检查未通过，分镜先别签批：\n  ${problems.join('\n  ')}\n  改 film.json 的 shots[].size 和 storyboard.md 的景别栏；确实要这样拍，加 --force`);
         if (problems.length) note = `${note}（景别检查未通过：${problems.join('；')}）`;
       }
-      const pendingFile=path.join(path.resolve(pos[0]),'.wkd/pending-approval.json');
-      const pending=readJson(pendingFile);
-      const pendingFlow=pending?.flow??pending?.deliveryApproval?.approval?.flow;
-      const legacyPending=pending&&pendingFlow!==FLOW_VERSION;
-      if(legacyPending&&pending.status!=='completed'&&(!opt('approval-id')||String(opt('approval-id'))===pending.id))throw new Error('旧流程待存档批准已保留；请复核当前材料，用当前 --step 和新的 --approval-id 签批，不可自动续用旧流程版本批准');
       const id=String(opt('approval-id')||(pending?.status!=='completed'&&pending?.note===note?pending.id:crypto.randomUUID()));
       const revision=opt('delivery-revision');
       if(revision===true)throw new Error('--delivery-revision 需要完整摘要');
       const deliveryApproval=revision?prepareFinalApproval(pos[0],{id,step,revision,source:'用户明确签批（signoff）',note,openEvidence:opt('open-status')?{status:opt('open-status'),source:note}:null}):null;
-      const signature=settingsSignature?digest({settingsSignature,implementation:implementationState()}):digest({sources:treeEvidence(path.resolve(pos[0]),(rel,ent)=>ent.isDirectory()&&['.git','.cache','.wkd','review','stills','generated','node_modules'].includes(ent.name)),implementation:implementationState(),decisions:readDecisions(pos[0]),shots:step===FINAL_REVIEW_STEP||step===VARIANT_STEP?shotHashes(pos[0]):null,...(revision?{deliveryRevision:revision}:{})});
+      const signature=settingsSignature?digest({settingsSignature,implementation:implementationState()}):digest({sources:treeEvidence(path.resolve(pos[0]),(rel,ent)=>ent.isDirectory()&&['.git','.cache','.wkd','review','stills','generated','node_modules'].includes(ent.name)),implementation:implementationState(),decisions:readDecisions(pos[0]),shots:step===FINAL_REVIEW_STEP||step===VARIANT_STEP?shotHashes(pos[0]):null,...(content?{content:content.signature}:{}),...(revision?{deliveryRevision:revision}:{})});
       if(pending?.id===id&&pending.signature!==signature) throw new Error('待存档批准之后输入已变化，请重新核实审阅，不能沿用旧批准');
       const existingApproval=readProgress(pos[0]).history.find(h=>h.approvalId===id);
       if(existingApproval&&(existingApproval.signature!==signature||existingApproval.step!==(step||readProgress(pos[0]).step)||existingApproval.note!==note))throw new Error('同一批准编号对应的输入或结论发生变化，请核实当前审阅');
@@ -99,6 +121,10 @@ export function reviewCommands({ pos, opt, log, aspectOpt }) {
       if(!prior&&step===FINAL_REVIEW_STEP){const snapshot=snapshotMain(pos[0],{log});if(snapshot.missing.length)throw new Error('缺少完整定稿快照，签批存档未提交');main=snapshot.hashes;}
       if(!prior&&step===VARIANT_STEP){const {film}=loadFilm(pos[0]);variants=Object.fromEntries(Object.keys(film.variants||{}).map(aspect=>[aspect,shotHashes(pos[0],{aspect})]));}
       commitSignoff(pos[0],{id,step,note,signature,main,variants});
+      if(content){
+        const current=contentReview(contentCtx,step);
+        recordContentApproval(contentCtx,current,{id,source:note,expectedSignature:content.signature});
+      }
       if(deliveryApproval)commitFinalApproval(pos[0],deliveryApproval);
       atomicJson(pendingFile,{id,flow:FLOW_VERSION,step,note,signature,status:'completed',git:'pending',...deliveryProof});
       const sha = commitSnapshot(pos[0], note, { log, extraFiles:step===5?settingSnapshotFiles(pos[0]):[] });

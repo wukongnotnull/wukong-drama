@@ -1,3 +1,4 @@
+import {approveFixtureContent,approveFixtureFrames} from '../helpers/content.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -56,6 +57,28 @@ test('short source fails instead of freezing frames to hide missing action',asyn
   await assert.rejects(pipeline.renderShots(f.job,[{shot:f.shot,out:f.out}],{}),/时长不足/);
   assert.equal(fs.existsSync(f.out),false);
 });
+
+test('nonzero source_start selects local picture and native sound without changing model task identity',async t=>{
+  const f=fixture(t,1.5),definition={video:'assets/input.mp4',source_start:0.8};
+  const original=generationEvidence(f.job,f.shot).videoRequest;
+  fs.writeFileSync(f.shot.path,JSON.stringify(definition));
+  await pipeline.renderShots(f.job,[{shot:f.shot,out:f.out}]);
+  assert.equal(probe(f.out).streams[0].nb_read_frames,'5');
+  const first=(file,at)=>{
+    const r=spawnSync('ffmpeg',['-v','error','-ss',String(at),'-i',file,'-vf','scale=160:90','-frames:v','1','-f','rawvideo','-pix_fmt','rgb24','-'],{maxBuffer:1e6});
+    assert.equal(r.status,0);return r.stdout;
+  };
+  const expected=first(f.source,0.8),actual=first(f.out,0);
+  assert.equal(actual.length,expected.length);
+  const mean=actual.reduce((sum,n,i)=>sum+Math.abs(n-expected[i]),0)/actual.length;
+  assert.ok(mean<4,`first frame must come from the selected source interval, mean difference ${mean}`);
+  assert.equal(nativeAudioTracks(f.job)[0].sourceStart,0.8);
+  assert.deepEqual(generationEvidence(f.job,f.shot).videoRequest,original);
+  const files=await pipeline.renderStills(f.job,[{shot:'s01',t:0}],path.join(f.dir,'stills'));
+  assert.equal(files.length,1);
+  fs.writeFileSync(f.shot.path,JSON.stringify({...definition,source_start:1.3}));
+  await assert.rejects(pipeline.renderShots(f.job,[{shot:f.shot,out:f.out}]),/时长不足|选段/);
+});
 test('local image produces a review still without generation credentials',async t=>{
   const f=fixture(t);
   const image=path.join(f.dir,'assets/frame.png');
@@ -105,6 +128,7 @@ test('selected still generation uses the same local batch that was approved',asy
   fs.writeFileSync(second.path,JSON.stringify({image_prompt:'solid blue',settings:[]}));
   f.job.shots.push(second);f.job.film.generation.image={model:'test',estimated_cost_usd:0.1,api_key_env:'WKD_SETTINGS_PIPELINE_TEST_KEY'};
   f.job.film.generation.budget={image_usd:1,max_image_tasks:2};approveEmptySettings(f.dir,'anime');
+  approveFixtureContent(f.job);
   approveGeneration({...f.job,shots:[second]},'image',{source:'测试只批准 s02 图片'});
   const prior=process.env.WKD_SETTINGS_PIPELINE_TEST_KEY;process.env.WKD_SETTINGS_PIPELINE_TEST_KEY='test-only';
   t.after(()=>{if(prior===undefined)delete process.env.WKD_SETTINGS_PIPELINE_TEST_KEY;else process.env.WKD_SETTINGS_PIPELINE_TEST_KEY=prior;});

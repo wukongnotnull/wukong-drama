@@ -1,3 +1,4 @@
+import {approveFixtureContent,approveFixtureFrames} from '../helpers/content.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -19,6 +20,7 @@ function fixture(t) {
   write(path.join(dir,'film.json'),film);
   for(const shot of film.shots)write(path.join(dir,shot.file),{image_prompt:'镜头构图',video_prompt:'缓慢走动',settings:[]});
   const job={filmDir:dir,film,style:{id:'anime'},variant:{aspect:'16:9'},shots:film.shots.map(s=>({...s,path:path.join(dir,s.file)})),log(){}};
+  approveFixtureContent(job);
   return {root,dir,job};
 }
 const ref={kind:'character',id:'hero',version:'v1'};
@@ -69,7 +71,7 @@ test('approved text and actual reference bytes enter image generation and stable
   approveGeneration(f.job,'image',{source:'测试预算批准'});
   const api={generateImage:async({prompt,references,output})=>{assert.match(prompt,/短发蓝衣/);assert.equal(fs.readFileSync(references[0],'utf8'),'reference A');fs.writeFileSync(output,'image');return {};},submitVideo:async({prompt})=>{assert.match(prompt,/短发蓝衣/);return {id:'task'};},getVideo:async()=>({status:'succeeded',videoUrl:'https://example.org/v'}),downloadVideo:async({output})=>fs.writeFileSync(output,'video')};
   await ensureImage(f.job,f.job.shots[0],{api});
-  const single={...f.job,shots:[f.job.shots[0]]};approveGeneration(single,'video',{source:'测试视频预算批准'});
+  const single={...f.job,shots:[f.job.shots[0]]};approveFixtureFrames(single);approveGeneration(single,'video',{source:'测试视频预算批准'});
   await ensureVideo(single,single.shots[0],{api});
 });
 test('reference or text changes invalidate approval, report affected primary and variant shots, and preserve other signatures',async t=>{

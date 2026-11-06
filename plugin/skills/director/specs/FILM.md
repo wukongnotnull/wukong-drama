@@ -38,6 +38,7 @@
 |---|---|
 | `seed` | 生成参数之一；相同种子不保证模型结果可重复 |
 | `shots[].duration` | 秒。按实际人声与动作时长核对 |
+| `shots[].transition` | 进入本镜的转场；同一画面接续写“连续”，可沿用上一镜景别，仍需人工核对 |
 | `shots[].size` | 景别：`大远景` / `远景` / `全景` / `中景` / `近景` / `特写` / `大特写`，与分镜表景别栏一致。第 6 道签批时 `wkd signoff --step 6` 检查：每镜都写、4 镜及以上至少 3 种、相邻两镜不同，不合规就拒绝签批 |
 | `cues` | 声音同步点 `名: [入点, 出点]`（全片时间，秒）。人声同步点由 `wkd soundtrack` 自动写入，音效同步点手写 |
 | `audio.build` | 配乐脚本，导出 `default async ({synth, duration, outDir, shots, cues}) => [{file, start, gain}]`。配乐、环境声、音效各返回一个文件（`bgm.wav` / `ambience.wav` / `sfx.wav`），剪映草稿里按文件分轨 |

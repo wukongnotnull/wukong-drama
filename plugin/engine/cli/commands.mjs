@@ -23,6 +23,7 @@ export function commandsFor(context) {
   };
 
   return {
+    'content-review': {preflight:'film',lock:'none',active:false,run:groups.review['content-review']},
     'image-plan': { preflight: 'film', lock: 'none', active: false, run: groups.image['image-plan'] },
     'image-approve': { preflight: 'film', lock: 'film', active: false, run: groups.image['image-approve'] },
     'image-dispatch': { preflight: 'film', lock: 'film', active: false, run: groups.image['image-dispatch'] },

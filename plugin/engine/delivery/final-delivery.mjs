@@ -136,7 +136,9 @@ function dependencies(dir,slot,fontFiles=[]) {
     groups.picture={files:files(ctx.shots.map(s=>s.path)),config:{size:ctx.film.size,fps:ctx.film.fps,seed:ctx.film.seed,title:ctx.film.title,shots:ctx.shots.map(({id,duration})=>({id,duration})),style:ctx.film.style},generated:ctx.shots.map(shot=>generationEvidence(ctx,shot))};
     const audio=ctx.film.audio||{};
     const refs=[...(audio.tracks||[]),...(audio.voices||[])].map(t=>t.file).filter(Boolean);
-    groups.audio={config:audio,files:files(refs),implementation:codeSource(path.join(ENGINE_ROOT,'audio'))};
+    const soundCtx=ctx.variant.isMain?ctx:loadFilm(dir,{requireShots:false});
+    const native=ctx.film.generation?.video?.generate_audio===false?[]:soundCtx.shots.map(s=>{const e=generationEvidence(soundCtx,s);return {id:s.id,video:e.video,nativeAudio:e.nativeAudio,edit:e.edit};});
+    groups.audio={config:audio,files:files(refs),native,implementation:codeSource(path.join(ENGINE_ROOT,'audio'))};
     if(audio.build)unknown.push('audio.build 动态来源覆盖不足（旧阶段 signature 为 null）');
     groups.renderer={pipeline:codeSource(ctx.pipeline.dir),core:engineFiles(['core/cache.mjs','core/film-context.mjs','core/timing.mjs']),generation:codeSource(path.join(ENGINE_ROOT,'generation'))};
     groups.fonts={files:files(fontFiles)};

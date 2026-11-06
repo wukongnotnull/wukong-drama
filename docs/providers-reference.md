@@ -39,3 +39,5 @@
 4. 提交前保存状态，取得任务 ID 后立即记录；超时或结果不明先查原任务，不自动重发。下载完成并取得实际文件后再继续。
 
 具体字段以[生成接口](../plugin/engine/providers/index.mjs)、[图片适配器](../plugin/engine/providers/openai.mjs)、[视频适配器](../plugin/engine/providers/seedance.mjs)和[工程格式](../plugin/engine/schemas/film.schema.json)为准。离线检查运行 node --test tests/unit/generation-providers.test.mjs，不调用真实服务。
+
+模型名为 ep-* 端点时，在 generation.video.model_family 填已核实的系列，如 seedance-2.0；不能从端点名字猜测有声能力。连续配乐优先后期统一铺，视频提示词要求无背景音乐，保留对白和环境／动作声；原生混音不承诺自动分轨。

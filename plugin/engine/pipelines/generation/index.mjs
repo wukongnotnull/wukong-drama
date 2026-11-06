@@ -31,15 +31,16 @@ function sourceProfile(info) {
 }
 export function validateSourceVideo(job, shot, source, {generated = false, info = probe(source)} = {}) {
   const profile = sourceProfile(info);
-  const wanted = shot.frames/job.fps;
-  if (!Number.isFinite(profile.duration) || profile.duration < wanted - 0.5/job.fps) throw new Error(`${shot.id} 源视频时长不足（需要 ${wanted.toFixed(3)} 秒），请调整剪辑时长或另行授权重新生成`);
+  const wanted = shot.frames/job.fps, sourceStart=generationEvidence(job,shot).edit.sourceStart;
+  if (!Number.isFinite(profile.duration) || profile.duration < sourceStart+wanted - 0.5/job.fps) throw new Error(`${shot.id} 源视频时长不足（选段 ${sourceStart.toFixed(3)}–${(sourceStart+wanted).toFixed(3)} 秒），请调整选段或另行授权重新生成`);
   const resolution = job.film.generation?.video?.resolution || '720p';
   const minimum = resolution === '4k' ? 2160 : Number(resolution.replace(/p$/,''));
   if (generated && Number.isFinite(minimum) && Math.min(profile.width,profile.height) < minimum) throw new Error(`${shot.id} 模型源视频未达到约定原生 ${resolution}（实际 ${profile.width}×${profile.height}），保留源素材等待审阅，不会放大冒充或自动重生`);
   return profile;
 }
 async function preserveAudio(job, shot, source, info) {
-  if (job.film.generation?.video?.generate_audio === false) return;
+  // 副版声音来自主版定稿；不要求重排后的画面素材另带一条原声。
+  if (job.film.generation?.video?.generate_audio === false || job.variant?.isMain===false) return;
   if (!info.streams.some(s => s.codec_type === 'audio')) throw new Error(`${shot.id} 要求模型原生声音，但源视频没有音轨`);
   const output = nativeAudioPath(job,shot,source), record = output + '.json';
   let old;
@@ -66,7 +67,8 @@ export async function renderShots(job, todo, {onDone} = {}) {
     fs.mkdirSync(path.dirname(out),{recursive:true});
     const part = out + '.part.mp4';
     try {
-      await run(['-i',source,'-map','0:v:0','-an','-vf',`${resize},fps=${job.fps},trim=end_frame=${shot.frames},setpts=PTS-STARTPTS`,'-frames:v',String(shot.frames),'-c:v','libx264','-preset','fast','-crf',job.proxy ? '23' : '16','-pix_fmt','yuv420p','-r',String(job.fps),'-movflags','+faststart',part]);
+      const sourceStart=generationEvidence(job,shot).edit.sourceStart;
+      await run(['-i',source,'-map','0:v:0','-an','-vf',`trim=start=${sourceStart},setpts=PTS-STARTPTS,${resize},fps=${job.fps},trim=end_frame=${shot.frames},setpts=PTS-STARTPTS`,'-frames:v',String(shot.frames),'-c:v','libx264','-preset','fast','-crf',job.proxy ? '23' : '16','-pix_fmt','yuv420p','-r',String(job.fps),'-movflags','+faststart',part]);
       await preserveAudio(job,shot,source,info);
       fs.renameSync(part,out);
       await onDone?.(item);
@@ -89,7 +91,7 @@ export async function renderStills(job, points, outDir) {
     const t = Math.min(point.t,Math.max(0,shot.duration-1/job.fps));
     const output = path.join(outDir,`${shot.id}-${t.toFixed(2)}s.png`), part = output + '.part.png';
     try {
-      await run([...(video ? ['-ss',String(t)] : []),'-i',source,'-vf',resize,'-frames:v','1',part]);
+      await run([...(video ? ['-ss',String(t+selected.edit.sourceStart)] : []),'-i',source,'-vf',resize,'-frames:v','1',part]);
       if (!fs.existsSync(part) || !fs.statSync(part).size) throw new Error('源素材没有所请求的静帧');
       fs.renameSync(part,output); files.push(output);
     } finally { fs.rmSync(part,{force:true}); }

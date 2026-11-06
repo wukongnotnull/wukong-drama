@@ -13,7 +13,7 @@ export function readReviewNotes(dir) {
 }
 const validRange=(r,D=Infinity)=>Array.isArray(r)&&r.length===2&&r.every(Number.isFinite)&&r[0]>=0&&r[1]>=r[0]&&r[1]<=D;
 const attributed=n=>!!n.reviewer?.trim()&&!!n.evidence?.trim()&&!!n.reviewedAt&&Number.isFinite(Date.parse(n.reviewedAt));
-export function audioReview({mix,duration,notes={version:1}}) {
+export function audioReview({mix,duration,shots=[],notes={version:1}}) {
   if(!mix)return {version:1,sha256:null,status:'no-audio',windows:[],errors:[],sectionsDeclared:false,manualRequired:[],boundary:'无声轨，无实际审听对象'};
   const audio=notes.audio||{},sha256=mix?fileDigest(mix):null,errors=[],windows=[];
   const add=(id,label,range)=>{
@@ -21,6 +21,11 @@ export function audioReview({mix,duration,notes={version:1}}) {
     if(same){same.covers.push(id);same.label+=' / '+label;}else windows.push({id,label,range,covers:[id],status:'not-listened'});
   };
   if(duration>0)add('opening','开场',[0,Math.min(15,duration)]);
+  if(duration>0)add('full-film','全片声音与节奏',[0,duration]);
+  for(const [i,shot] of shots.entries()){
+    add('shot:'+shot.id,shot.id+' 对白／动作声',[shot.start,Math.min(duration,shot.start+shot.duration)]);
+    if(i>0)add('cut:'+shots[i-1].id+':'+shot.id,shots[i-1].id+' → '+shot.id+' 声音接续',[Math.max(0,shot.start-0.5),Math.min(duration,shot.start+0.5)]);
+  }
   const sections=audio.sections||[],ids=new Set();
   for(const section of sections){
     if(ids.has(section.id)||!validRange(section.range,duration)||section.range[1]===section.range[0]){errors.push(`audio.sections.${section.id}：重复或越界区间`);continue;}
@@ -37,7 +42,7 @@ export function audioReview({mix,duration,notes={version:1}}) {
     if(['accepted','needs-fix'].includes(n.verdict)&&(!attributed(n)||!n.note?.trim()))errors.push(`review-notes.json.audio.checks.${n.section}：缺少实际审听操作者、时间、结论或证据`);
     if(!windows.some(w=>w.covers.includes(n.section)))errors.push(`review-notes.json.audio.checks.${n.section}：找不到对应窗口`);
   }
-  return {version:1,sha256,windows,errors,sectionsDeclared:sections.length>0,status:stale?'stale':errors.length?'invalid':windows.some(w=>w.status==='needs-fix')?'needs-fix':!sections.length||windows.some(w=>w.status==='not-listened')?'not-listened':'accepted',manualRequired:!sections.length?['音乐段落划分未声明，不能认为段落审听完成']:[],boundary:'人工记录仅声明所列范围；RMS/LUFS 测量不代表实际听过'};
+  return {version:1,sha256,windows,errors,sectionsDeclared:sections.length>0,status:stale?'stale':errors.length?'invalid':windows.some(w=>w.status==='needs-fix')?'needs-fix':(!sections.length&&!shots.length)||windows.some(w=>w.status==='not-listened')?'not-listened':'accepted',manualRequired:!sections.length&&!shots.length?['音乐段落划分未声明，不能认为段落审听完成']:[],boundary:'人工记录仅声明所列范围；RMS/LUFS 测量不代表实际听过；动作含义与故事仍需实际看小样'};
 }
 const SOFT=new Set(['留白不足','点缀过多','点缀色超量','闪烁','突变/闪烁','硬切过多','音效相对电平','音效被盖住']);
 export const isSoftFinding=kind=>SOFT.has(kind);
@@ -61,9 +66,9 @@ export function qcReview(issues,{source,cfg,notes={}}) {
 }
 export function saveAudioReview(ctx,mix) {
   let report;
-  try{report=audioReview({mix,duration:ctx.totalDuration,notes:readReviewNotes(ctx.filmDir)});}
+  try{report=audioReview({mix,duration:ctx.totalDuration,shots:ctx.shots,notes:readReviewNotes(ctx.filmDir)});}
   catch(e){report={version:1,status:'invalid',sha256:mix?fileDigest(mix):null,errors:[e.message],windows:[],manualRequired:[],boundary:'审听记录无效，本次未完成检查'};}
-  const base=path.join(ctx.filmDir,'review','声轨审听');atomicJson(base+'.json',report);
+  const base=path.join(ctx.filmDir,'review',ctx.variant?.review('声轨审听')||'声轨审听');atomicJson(base+'.json',report);
   fs.writeFileSync(base+'.md',['# 声轨审听','',mix?`实际音频：${mix}`:'无声轨；没有可播放音频','',`状态：${report.status}`,report.boundary,'',...report.windows.map(w=>`- ${w.label} ${w.range.join('–')}s：${w.status}${w.review?'；'+w.review.note:''}`),...report.manualRequired,...report.errors,''].join('\n'));
   return report;
 }
@@ -75,7 +80,7 @@ export function saveSfxReview(ctx,mix,rows) {
 }
 export function draftAudioDifference(ctx,tracks,measured=null) {
   const D=ctx.totalDuration,fade=Math.min(1.2,D*0.1),hasAudio=tracks.length>0;
-  const report={version:1,aspect:ctx.variant.aspect,hasAudio,tracks:tracks.map(t=>({file:t.file,start:t.start||0,gain:t.gain||0,ducked:!!t.duckApplied})),master:hasAudio?{fadeOut:fade,targetLUFS:ctx.style.loudness??-18,measuredLUFS:measured}:null,note:hasAudio?'草稿保留当前分轨音量与已烘焙的人声闪避；未应用与成片相同的整体响度标准化和统一尾部淡出，请在剪映核对。':'无音轨，草稿与成片均无声。'};
+  const report={version:1,aspect:ctx.variant.aspect,hasAudio,tracks:tracks.map(t=>({file:t.file,start:t.start||0,sourceStart:t.sourceStart||0,duration:t.duration??null,gain:t.gain||0,ducked:!!t.duckApplied})),master:hasAudio?{fadeOut:fade,targetLUFS:ctx.style.loudness??-18,measuredLUFS:measured}:null,note:hasAudio?'草稿保留当前分轨音量与已烘焙的人声闪避；未应用与成片相同的整体响度标准化和统一尾部淡出，请在剪映核对。':'无音轨，草稿与成片均无声。'};
   const base=path.join(ctx.filmDir,'review',ctx.variant.review('草稿声音差异.json').slice(0,-5));atomicJson(base+'.json',report);
   fs.writeFileSync(base+'.md',['# 草稿声音差异（导出前）','',report.note,'',...(hasAudio?[`成片目标 ${report.master.targetLUFS} LUFS；${measured===null?'当前响度未测量':'实测 '+measured+' LUFS'}；结尾统一淡出 ${fade}s。`]:[]),...report.tracks.map(t=>`- ${t.file}：起点 ${t.start}s，音量 ${t.gain}dB，闪避烘焙 ${t.ducked?'是':'否'}`),''].join('\n'));
   return {report,files:[base+'.md',base+'.json']};

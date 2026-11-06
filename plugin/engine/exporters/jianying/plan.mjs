@@ -64,15 +64,17 @@ const laneName = (base, i) => (i ? `${base} ${i + 1}` : base);
  */
 function audioSegments(t, end) {
   const offset = t.start || 0;
+  const sourceStart=t.sourceStart||0, sourceEnd=sourceStart+(t.duration??Infinity);
   // 人声带实际时长：按时长放，不延伸到片尾
-  const ranges = t.ranges || [{ start: 0, end: t.duration ?? Infinity }];
+  const ranges = (t.ranges || [{start:sourceStart,end:sourceEnd}])
+    .map(r=>({start:Math.max(sourceStart,r.start),end:Math.min(sourceEnd,r.end)})).filter(r=>r.end>r.start);
   return ranges
     .map((r) => {
-      const start = us(offset + r.start);
+      const start = us(offset + r.start-sourceStart);
       const length = r.end === Infinity ? Infinity : us(r.end - r.start);
       return { file: t.file, start, sourceStart: us(r.start), maxDuration: Math.min(length, end - start), volume: linearVolume(t.gain) };
     })
-    .filter((s) => s.start < end);
+    .filter((s) => s.start < end && s.maxDuration>0);
 }
 
 function audioTracks(tracks, duration) {

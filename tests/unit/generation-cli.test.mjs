@@ -1,9 +1,11 @@
+import {approveFixtureContent,approveFixtureFrames} from '../helpers/content.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { runCli } from '../../plugin/engine/cli/run.mjs';
+import {loadFilm} from '../../plugin/engine/core/film-context.mjs';
 import { commandsFor } from '../../plugin/engine/cli/commands.mjs';
 import { approveEmptySettings } from '../helpers/settings.mjs';
 
@@ -45,6 +47,7 @@ test('video CLI approval requires the exact displayed plan signature',async t=>{
  fs.writeFileSync(filmFile,JSON.stringify(film));
  fs.writeFileSync(path.join(dir,'ref.png'),'imported reference');
  for(const shot of film.shots)fs.writeFileSync(path.join(dir,shot.file),JSON.stringify({image:'ref.png',video_prompt:'猫抬头'}));
+ approveFixtureFrames(loadFilm(dir));
  assert.equal(await runCli(['generation-approve',dir,'--kind','video','--source','start batch'],io),1);
  assert.match(errors.at(-1),/signature/);
  assert.ok(!fs.existsSync(path.join(dir,'.wkd/generation-approvals.json')));

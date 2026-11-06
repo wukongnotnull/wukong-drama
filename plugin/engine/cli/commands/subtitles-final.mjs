@@ -56,7 +56,7 @@ export function subtitlesFinalCommands({ pos, opt, log, aspectOpt }) {
     registerSubtitleEvidence(ctx,checked,true,layout);
     if (!preview) return;
     subs=checked.subs;
-    const mix = path.join(ctx.filmDir, '.cache', 'mix.wav');
+    const mix = path.join(ctx.variant.cacheDir, 'mix.wav');
     const out = path.join(ensureDir(path.join(ctx.filmDir, 'review')), ctx.variant.review('字幕预览.mp4'));
     const { W, H } = outputSize(ctx.film, true);
     await burnSubtitles(video, subs, out, { W, H, style: ctx.style, workDir: path.join(ctx.variant.cacheDir, 'work'), proxy: true, fps: outputSize(ctx.film,true).fps, prepared: checked.layers, audio: fs.existsSync(mix) ? mix : null, log });

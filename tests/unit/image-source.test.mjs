@@ -1,3 +1,4 @@
+import {approveFixtureContent,approveFixtureFrames} from '../helpers/content.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -21,6 +22,7 @@ async function fixture(t) {
  fs.writeFileSync(path.join(dir,'assets/ref.png'),png);
  fs.writeFileSync(job.shots[0].path,JSON.stringify({image_prompt:'small illustrated house',references:['assets/ref.png'],settings:[]}));
  job.shots=job.shots.slice(0,1);
+ approveFixtureContent(job);
  return {root,dir,job,output,io};
 }
 async function api() { return import('../../plugin/engine/generation/image-batches.mjs'); }

@@ -155,6 +155,13 @@ test('splits a track into one segment per sound range, pointing into the same fi
   ]);
 });
 
+test('sound ranges intersect the selected source interval and never extend beyond the shot', () => {
+  const p=buildDraftPlan(timeline({tracks:[{role:'track',file:'/f/native.wav',start:1,sourceStart:2,duration:1,ranges:[{start:0,end:2.4},{start:2.7,end:5}]}]}));
+  assert.deepEqual(p.audioTracks[0].segments.map(s=>[s.start,s.sourceStart,s.maxDuration]),[
+    [1_000_000,2_000_000,400_000],[1_700_000,2_700_000,300_000]
+  ]);
+});
+
 test('offsets sound ranges by the track start and caps them at the film end', () => {
   const p = buildDraftPlan(timeline({
     tracks: [{ role: 'track', file: '/f/a.wav', start: 1, gain: 0, ranges: [{ start: 0, end: 1 }, { start: 3.5, end: 6 }, { start: 4.5, end: 5 }] }],

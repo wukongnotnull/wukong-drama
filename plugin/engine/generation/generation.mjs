@@ -8,6 +8,7 @@ import { resolveShotSettings, requireSettingsInventory } from '../core/settings.
 import { imageRoute, saveImageRoutes, hostConfig, validateHostRequest } from './image-source.mjs';
 import { imageMime, atomicWrite } from '../providers/media.mjs';
 import { run as ffmpeg } from '../core/ffmpeg.mjs';
+import {contentSnapshot,requireContentApproval} from '../core/content-approval.mjs';
 
 function localFile(dir, relative) {
   if (typeof relative !== 'string' || !relative || path.isAbsolute(relative)) throw new Error('素材必须使用片目录内的相对路径');
@@ -23,9 +24,12 @@ function readShot(job, shot) {
   try { value = job.imageStage ? shot.definition : JSON.parse(fs.readFileSync(localFile(job.filmDir, shot.path ? path.relative(job.filmDir,shot.path) : shot.file), 'utf8')); }
   catch { throw new Error(`镜头 ${shot.id} 必须是有效的 JSON 模型镜头`); }
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`镜头 ${shot.id} 描述无效`);
-  const keys = ['image_prompt','video_prompt','references','image','video','revision','settings'];
+  const keys = ['image_prompt','video_prompt','references','image','video','revision','settings','source_start','image_role','initial_state'];
   if (Object.keys(value).some(x => !keys.includes(x))) throw new Error(`镜头 ${shot.id} 含未知字段`);
   for (const key of ['image_prompt','video_prompt','image','video','revision']) if (value[key] !== undefined && (typeof value[key] !== 'string' || !value[key].trim())) throw new Error(`镜头 ${shot.id} 的 ${key} 必须是非空字符串`);
+  if(value.source_start!==undefined&&(!Number.isFinite(value.source_start)||value.source_start<0))throw new Error(`${shot.id} source_start 必须是非负秒数`);
+  if(value.image_role!==undefined&&!['representative','first_frame'].includes(value.image_role))throw new Error(`${shot.id} image_role 必须是 representative 或 first_frame`);
+  if(value.initial_state!==undefined&&(typeof value.initial_state!=='string'||!value.initial_state.trim()))throw new Error(`${shot.id} initial_state 必须描述动作初态`);
   if (value.references !== undefined && (!Array.isArray(value.references) || value.references.length > 16)) throw new Error('references 必须为最多 16 项的本地参考图列表');
   const settings=['art','settings'].includes(job.imageStage)&&value.settings===undefined?{bindings:[],references:[],prompt:''}:resolveShotSettings(job,value);
   const references=[...new Set([...(value.references||[]).map(x=>localFile(job.filmDir,x)),...settings.references])];
@@ -84,6 +88,24 @@ function videoRequest(job, shot, definition = readShot(job,shot)) {
   const signature = digest(input);
   return { ...stateAt(rootFor(job,shot),'video',signature),kind:'video',signature,input,config,definition,image,imported:definition.video || null };
 }
+export function contentReview(job,step){
+  const frames={};
+  if(step===7)for(const shot of allShots(job)){
+    const definition=readShot(job,shot);
+    frames[shot.id]={file:availableImage(job,shot,definition),role:definition.image_role,initialState:definition.initial_state};
+  }
+  return contentSnapshot(job,step,{frames});
+}
+function requireContent(job,shot,kind,definition){
+  if(job.imageStage)return;
+  const selected={...job,shots:[shot],generationShots:null};
+  requireContentApproval(selected,contentReview(selected,4));
+  requireContentApproval(selected,contentReview(selected,6));
+  if(kind==='video'){
+    if(definition.image_role!=='first_frame'||!definition.initial_state?.trim())throw new Error(`${shot.id} 视频输入必须明确 image_role: first_frame 和 initial_state，并实际核对动作初态`);
+    requireContentApproval(selected,contentReview(selected,7));
+  }
+}
 function requestStatus(request) {
   if (request.imported || (request.kind === 'image' && request.definition.video)) return 'imported';
   return request.state?.status || 'new';
@@ -133,6 +155,7 @@ export function generationPlan(job, kind = 'image') {
   const problems = [...summary.problems];
   if(!['art','settings'].includes(job.imageStage)&&requests.some(({request})=>requestStatus(request)==='new'))try{requireSettingsInventory(job.filmDir,job.style?.id||job.film.style);}catch(e){problems.push(e.message);}
   for (const {shot,request:r} of requests) if (requestStatus(r) === 'new') {
+    try{requireContent(job,shot,kind,r.definition);}catch(e){problems.push(e.message);}
     if (!r.input.prompt) problems.push(`${shot.id} 缺少 ${kind} 提示词`);
     if (r.config.provider==='host') {
       try {
@@ -147,12 +170,18 @@ export function generationPlan(job, kind = 'image') {
       catch (error) { problems.push(`${shot.id}：${error.message}`); }
     }
     if (kind === 'video' && !r.image) problems.push(`${shot.id} 缺少已生成或导入的分镜图；请先生成并审核图片`);
+    if(kind==='video'&&(r.definition.source_start||0)+shot.duration>r.input.duration)problems.push(`${shot.id} 选段超出本批申请的源视频长度；请先调整选段或另行规划足够长的源素材`);
     if (kind === 'video' && r.config.model && r.input.prompt) {
       try { providers.validateVideoRequest({config:r.config,prompt:r.input.prompt,duration:r.input.duration,ratio:'adaptive'}); }
       catch (error) { problems.push(`${shot.id}：${error.message}`); }
     }
   }
-  const signature = digest({version:1,kind,budget,items:items.map(x => ({shot:x.shot,signature:x.signature,estimatedCost:x.estimatedCost,source:x.source}))});
+  const content=job.imageStage?null:requests.map(({shot})=>{
+    const selected={...job,shots:[shot],generationShots:null};
+    try{return {id:shot.id,versions:(kind==='video'?[4,6,7]:[4,6]).map(step=>contentReview(selected,step).signature)};}
+    catch{return {id:shot.id,versions:null};}
+  });
+  const signature = digest({version:1,kind,budget,content,items:items.map(x => ({shot:x.shot,signature:x.signature,estimatedCost:x.estimatedCost,source:x.source})),...(kind==='video'?{edit:requests.map(({shot,request:r})=>({id:shot.id,duration:shot.duration,sourceStart:r.definition.source_start||0}))}:{})});
   return {version:1,kind,aspect:job.variant?.aspect || '16:9',signature,items,budget,...summary,problems,allowed:problems.length === 0,...(kind==='video'?{videoSummary:videoSummary(job,requests,items,summary)}:{})};
 }
 export function approveGeneration(job, kind, {source,expectedSignature} = {}) {
@@ -381,6 +410,7 @@ export function generationEvidence(job, shot) {
   const selectedVideo = snapshot(videoFile);
   const native = (job.film.generation?.video?.generate_audio !== false) && selectedVideo ? nativeAudioPath(job,shot,selectedVideo.file) : null;
   return { imageRequest:image.input,videoRequest:video.input,references:definition.references.map(snapshot),image:snapshot(imageFile),video:selectedVideo,
+    edit:{sourceStart:definition.source_start||0,duration:shot.duration},
     imported:{image:!!image.imported,video:!!video.imported},
     ...(!video.imported ? {sourceTechnical:snapshot(videoFile && videoFile+'.technical.json')} : {}),
     ...((job.film.generation?.video?.generate_audio !== false) ? {nativeAudio:{wave:snapshot(native),record:snapshot(native && native+'.json')}} : {}) };
@@ -402,6 +432,6 @@ export function nativeAudioTracks(job) {
       valid = record?.version === 1 && record.source === fileDigest(source) && fs.existsSync(file) && fs.statSync(file).size > 0 && record.output === fileDigest(file);
     } catch { /* An unreadable or corrupt sidecar requires deterministic reconstruction. */ }
     if (!valid) throw new Error(`${shot.id} 原生音轨缺失或已改变，请先 render 重建原生音轨`);
-    return [{file,start:at,duration:shot.duration,shot:shot.id,gain:1}];
+    return [{file,start:at,sourceStart:readShot(job,shot).source_start||0,duration:shot.duration,shot:shot.id,gain:1}];
   });
 }

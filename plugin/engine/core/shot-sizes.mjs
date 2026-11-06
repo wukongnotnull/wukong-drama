@@ -15,7 +15,7 @@ export function checkShotSizes(shots) {
     problems.push(`${shots.length} 个镜头只用了 ${kinds.length} 种景别（${kinds.join('、')}），至少要 ${MIN_KINDS} 种`);
   }
   for (let i = 1; i < shots.length; i++) {
-    if (shots[i].size === shots[i - 1].size) problems.push(`${shots[i - 1].id} 和 ${shots[i].id} 都是${shots[i].size}，相邻两镜景别要不同`);
+    if (shots[i].size === shots[i - 1].size && shots[i].transition!=='连续') problems.push(`${shots[i - 1].id} 和 ${shots[i].id} 都是${shots[i].size}，相邻两镜景别要不同`);
   }
   return problems;
 }

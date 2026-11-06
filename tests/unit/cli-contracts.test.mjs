@@ -67,7 +67,7 @@ test('CLI output, help aliases, usage errors and streams match the frozen baseli
   const f = fixture(t);
   for (const expected of baseline.cases) {
     const r = spawnSync(process.execPath, [path.join(engine, 'bin/wkd.mjs'), ...expected.argv], { cwd: f.root, env: f.env, encoding: 'utf8', timeout: 15000 });
-    const originalHelp = text=>text.split('\n').filter(line=>!/^  wkd (generation-plan|generation-approve|series-init|series|series-update) /.test(line)).join('\n');
+    const originalHelp = text=>text.split('\n').filter(line=>!/^  wkd (content-review|generation-plan|generation-approve|series-init|series|series-update) /.test(line)).join('\n');
     assert.deepEqual({ status: r.status, stdout: originalHelp(r.stdout), stderr: originalHelp(r.stderr) }, { status: expected.status, stdout: expected.stdout, stderr: expected.stderr }, expected.argv.join(' '));
   }
 });

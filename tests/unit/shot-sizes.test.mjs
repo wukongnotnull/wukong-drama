@@ -1,3 +1,6 @@
+import {approveFixtureContent} from '../helpers/content.mjs';
+import {contentReview} from '../../plugin/engine/generation/generation.mjs';
+import {loadFilm} from '../../plugin/engine/core/film-context.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -11,6 +14,12 @@ import { approveEmptySettings } from '../helpers/settings.mjs';
 import { readProgress } from '../../plugin/engine/core/state.mjs';
 
 const shots = (...sizes) => sizes.map((size, i) => ({ id: `s0${i + 1}`, file: `shots/s0${i + 1}.json`, duration: 1, ...(size ? { size } : {}) }));
+
+test('an explicitly continuous shot may keep the previous shot size',()=>{
+  const list=shots('远景','远景','中景','特写');list[1].transition='连续';
+  assert.deepEqual(checkShotSizes(list),[]);
+  list[1].transition='硬切';assert.match(checkShotSizes(list).join(' '),/相邻/);
+});
 
 test('a storyboard that follows the rules passes', () => {
   assert.deepEqual(checkShotSizes(shots('近景', '远景', '中景', '特写', '远景')), []);
@@ -45,12 +54,13 @@ function filmWith(sizes) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wkd-size-'));
   fs.writeFileSync(path.join(dir, 'film.json'), JSON.stringify({ title: 't', style: 'ink-wash', size: [320, 180], fps: 10, seed: 1, generation: {image:{provider:"openai"},video:{provider:"seedance"}}, shots: shots(...sizes) }));
   approveEmptySettings(dir);
+  approveFixtureContent(loadFilm(dir,{requireShots:false}));
   return dir;
 }
 
 test('signoff --step 6 refuses a storyboard that breaks the size rules and records nothing', () => {
   const dir = filmWith(['近景', '特写', '特写', '远景']);
-  const r = spawnSync(process.execPath, [WKA, 'signoff', dir, '分镜签批', '--step', '6'], { encoding: 'utf8' });
+  const r = spawnSync(process.execPath, [WKA, 'signoff', dir, '分镜签批', '--step', '6', '--content-signature', contentReview(loadFilm(dir,{requireShots:false}),6).signature], { encoding: 'utf8' });
   assert.notEqual(r.status, 0);
   assert.match(r.stderr, /s02 和 s03 都是特写/);
   assert.equal(readProgress(dir).step || 0, 0);
@@ -59,7 +69,7 @@ test('signoff --step 6 refuses a storyboard that breaks the size rules and recor
 
 test('signoff --step 6 --force records the sign-off with the problems attached', () => {
   const dir = filmWith(['近景', '特写', '特写', '远景']);
-  const r = spawnSync(process.execPath, [WKA, 'signoff', dir, '分镜签批', '--step', '6', '--force'], { encoding: 'utf8' });
+  const r = spawnSync(process.execPath, [WKA, 'signoff', dir, '分镜签批', '--step', '6', '--content-signature', contentReview(loadFilm(dir,{requireShots:false}),6).signature, '--force'], { encoding: 'utf8' });
   assert.equal(r.status, 0, r.stderr);
   const st = readProgress(dir);
   assert.equal(st.step, 6);
