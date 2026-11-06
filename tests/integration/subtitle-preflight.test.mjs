@@ -12,7 +12,7 @@ for(const pipeline of ['generation']) {
   try {
    writeModelShot(path.join(dir,'shots','s01.json'), {color:'white', duration:1.5, fps:10,
     filter:"drawbox=x=0:y=0:w=iw:h=ih:color=black:t=fill:enable='gte(t,0.7)'"});
-   const film={title:'preflight',style:`sub-${pipeline}`,size:[320,180],fps:10,seed:1, generation: {image:{provider:"openai"},video:{provider:"seedance"}},shots:[{id:'s01',file:'shots/s01.json',duration:1.5}],variants:{'9:16':{}},subtitles:{mode:'both'}};
+   const film={title:'preflight',style:`sub-${pipeline}`,size:[320,180],fps:10,seed:1, generation: {image:{provider:"openai"},video:{generate_audio:false,provider:"seedance"}},shots:[{id:'s01',file:'shots/s01.json',duration:1.5}],variants:{'9:16':{}},subtitles:{mode:'both'}};
    const filmFile=path.join(dir,'film.json');fs.writeFileSync(filmFile,JSON.stringify(film));
    for(const aspect of [null,'9:16']) {
     const suffix=aspect?'.9x16':'',outSuffix=aspect?'-9x16':'';

@@ -379,17 +379,17 @@ export function generationEvidence(job, shot) {
   const imageFile = image.imported || (image.state?.status === 'completed' ? image.output : null);
   const videoFile = video.imported || (video.state?.status === 'completed' ? video.output : null);
   const selectedVideo = snapshot(videoFile);
-  const native = job.film.generation?.video?.generate_audio && selectedVideo ? nativeAudioPath(job,shot,selectedVideo.file) : null;
+  const native = (job.film.generation?.video?.generate_audio !== false) && selectedVideo ? nativeAudioPath(job,shot,selectedVideo.file) : null;
   return { imageRequest:image.input,videoRequest:video.input,references:definition.references.map(snapshot),image:snapshot(imageFile),video:selectedVideo,
     imported:{image:!!image.imported,video:!!video.imported},
     ...(!video.imported ? {sourceTechnical:snapshot(videoFile && videoFile+'.technical.json')} : {}),
-    ...(job.film.generation?.video?.generate_audio ? {nativeAudio:{wave:snapshot(native),record:snapshot(native && native+'.json')}} : {}) };
+    ...((job.film.generation?.video?.generate_audio !== false) ? {nativeAudio:{wave:snapshot(native),record:snapshot(native && native+'.json')}} : {}) };
 }
 export function nativeAudioPath(job, shot, source) {
   return path.join(rootFor(job,shot),`audio-${fileDigest(source)}`,'native.wav');
 }
 export function nativeAudioTracks(job) {
-  if (!job.film.generation?.video?.generate_audio) return [];
+  if (job.film.generation?.video?.generate_audio === false) return [];
   let start = 0;
   return allShots(job).flatMap(shot => {
     const source = generationEvidence(job,shot).video?.file;

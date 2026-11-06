@@ -41,7 +41,7 @@
 | `shots[].size` | 景别：`大远景` / `远景` / `全景` / `中景` / `近景` / `特写` / `大特写`，与分镜表景别栏一致。第 6 道签批时 `wkd signoff --step 6` 检查：每镜都写、4 镜及以上至少 3 种、相邻两镜不同，不合规就拒绝签批 |
 | `cues` | 声音同步点 `名: [入点, 出点]`（全片时间，秒）。人声同步点由 `wkd soundtrack` 自动写入，音效同步点手写 |
 | `audio.build` | 配乐脚本，导出 `default async ({synth, duration, outDir, shots, cues}) => [{file, start, gain}]`。配乐、环境声、音效各返回一个文件（`bgm.wav` / `ambience.wav` / `sfx.wav`），剪映草稿里按文件分轨 |
-| `audio.voice_source` | 人声素材来源（第 7 道工序，审片节点⑥）：`user` 用户自供录音 / `ai` AI 配音 / `none` 无人声 |
+| `audio.voice_source` | 独立人声素材来源（第 7 道工序，审片节点⑥）：`user` 用户自供录音 / `ai` AI 配音 / `none` 无独立人声 |
 | `audio.voices` | 人声文案，画外音、对白、同期声都写在这里；`user` 时每条用 `file` 挂接录音；`ai` 且没装 TTS 时按每秒 3.6 字预估同步点 |
 | `voices[].kind` | 人声类型，对应分镜「人声」栏的标记：`vo` 画外音（默认，含旁白、内心独白）/ `dialogue` 对白 / `os` 画外但在场景里 / `live` 同期声。`live` 是现场原声，AI 配不出来，必须挂接 `file`；`voice_source` 为 `ai` 时，其余条目照常 AI 配音 |
 | `voices[].chars` | `true` 时 `wkd soundtrack` 给这一句的每个字写同步点 `名#1`、`名#2`……（按停顿分句、句内均分的近似时间），用于声音/字幕及后期对位参考；不能据此宣称生成视频的文字或口型逐字同步 |
@@ -60,4 +60,4 @@
 
 可选 `series` 引用项目路径、`episode_id` 与 `character_ids`。角色、道具、场景版本在项目设定库中维护；第 5 道按 `SETTINGS.md` 确认，本片 `settings.json` 选择版本，镜头 `settings` 自动带入文字与参考快照，额外构图图像才列入 `references`。正式连续性独立于草稿，只有明确确认的当前稿才入 canon。
 
-默认后期独立配音、配乐和音效；用户可选择原生声音，设置 `generation.video.generate_audio: true`，保留并提取模型音轨进入后期。真实视频未产出前只确认声音方向，不填写实际审听通过；不要手加 schema 未支持的字段。
+默认 `generation.video.generate_audio: true`，省略时也开启；保留并提取模型原生音轨进入后期。用户选择无声画面或独立后期时显式设为 `false`，旧工程已有的 `false` 不变。原生声音是一条混合音轨，不能承诺自动拆分。`audio.voice_source` 仅管理额外独立人声；全片无人声还要在 `video_prompt` 明确禁止对白和旁白。真实视频未产出前只确认方向，实际生成后再审听，不填写虚假的提前通过记录。

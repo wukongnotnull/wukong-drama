@@ -41,6 +41,16 @@ test('real imported source normalizes exact frames and preserves native audio se
   const files=await pipeline.renderStills(f.job,[{shot:'s01',t:0.3}],stills);
   assert.equal(files.length,1);assert.equal(probe(files[0]).streams[0].width,160);
 });
+for(const enabled of [undefined,false])test(`native audio extraction with generate_audio=${enabled}`,async t=>{
+  const f=fixture(t);
+  if(enabled===undefined)delete f.job.film.generation.video.generate_audio;
+  else f.job.film.generation.video.generate_audio=enabled;
+  const before=fileDigest(f.source);
+  await pipeline.renderShots(f.job,[{shot:f.shot,out:f.out}],{});
+  assert.equal(nativeAudioTracks(f.job).length,enabled===false?0:1);
+  assert.equal(Object.hasOwn(generationEvidence(f.job,f.shot),'nativeAudio'),enabled!==false);
+  assert.equal(fileDigest(f.source),before);
+});
 test('short source fails instead of freezing frames to hide missing action',async t=>{
   const f=fixture(t,0.2);
   await assert.rejects(pipeline.renderShots(f.job,[{shot:f.shot,out:f.out}],{}),/时长不足/);

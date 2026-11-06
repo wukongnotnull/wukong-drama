@@ -15,7 +15,7 @@ function fixture(t) {
   t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
   fs.mkdirSync(path.join(root,'assets'),{recursive:true});
   fs.writeFileSync(path.join(root,'assets/hero.png'),'reference A');
-  const film={style:'anime',generation:{image:{provider:'openai',model:'image-test',estimated_cost_usd:0.1},video:{provider:'seedance',model:'video-test',estimated_cost_cny:1},budget:{image_usd:10,video_cny:20,max_image_tasks:20,max_video_tasks:20}},shots:[{id:'s01',file:'shots/s01.json',duration:4},{id:'s02',file:'shots/s02.json',duration:4}]};
+  const film={style:'anime',generation:{image:{provider:'openai',model:'image-test',estimated_cost_usd:0.1},video:{generate_audio:false,provider:'seedance',model:'video-test',estimated_cost_cny:1},budget:{image_usd:10,video_cny:20,max_image_tasks:20,max_video_tasks:20}},shots:[{id:'s01',file:'shots/s01.json',duration:4},{id:'s02',file:'shots/s02.json',duration:4}]};
   write(path.join(dir,'film.json'),film);
   for(const shot of film.shots)write(path.join(dir,shot.file),{image_prompt:'镜头构图',video_prompt:'缓慢走动',settings:[]});
   const job={filmDir:dir,film,style:{id:'anime'},variant:{aspect:'16:9'},shots:film.shots.map(s=>({...s,path:path.join(dir,s.file)})),log(){}};

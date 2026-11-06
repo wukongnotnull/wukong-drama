@@ -35,7 +35,7 @@
     "video": {
       "provider": "seedance",
       "resolution": "720p",
-      "generate_audio": false
+      "generate_audio": true
     },
     "budget": {
       "image_usd": 1,

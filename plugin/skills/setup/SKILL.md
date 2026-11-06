@@ -38,6 +38,8 @@ description: 用户首次安装 wukong-drama、要求安装或检查本地制作
 
 图片可以选择当前 Agent 的可用 skill／内置工具，或已配置的自定义 API；首批优先推荐可用 Agent。宿主路线不需要项目 API 密钥，按 [图片来源规范](../director/specs/IMAGES.md) 逐批选择、交接并回收。API 默认官方 OpenAI Images API 与火山方舟 Seedance，不自动切换。由实际执行进程读取 `OPENAI_API_KEY` / `ARK_API_KEY`，模型使用 `OPENAI_IMAGE_MODEL` / `SEEDANCE_MODEL`，也可在 `film.generation.image.model` / `video.model` 指定。只核对是否已设置，不打印密钥；密钥不能写入工程、日志或 Git。没有密钥时也可以导入本地 `image` / `video` 素材完成后期。
 
+视频原生声音默认开启，省略 generate_audio 同样按 true；独立后期或不支持有声的型号须显式设 false。实际视频生成后再审听原生声音，配置完成不代表声音已通过。
+
 先查验所选模型的实际图片规格、视频时长、分辨率、原生声音能力与定价；没有可靠依据不填估价，也不宣称可生成 30 秒。`generation.image.estimated_cost_usd` 和 `video.estimated_cost_cny` 记录人工核实的每请求上界，来源写进制作简报或计划备注；`generation.budget` 设置 `image_usd`、`video_cny` 和 `max_video_tasks`。预算是提交前控制，不是账单硬封顶。
 
 图片全部阶段先 `image-plan`，在同一选择窗口说明本批任务、数量、API 费用或宿主费用不可估算，再 `image-approve --method host|api --signature ... --source ...`；同批继续执行不逐张问，新批必须确认。具体参数与回收见图片来源规范。视频先 `generation-plan --kind video`，按 [视频批次规范](../director/specs/VIDEO.md) 展示源片／成片时长、模型、数量、费用和预算；每批弹窗等待明确开始，再 `generation-approve --kind video --signature <计划签名> --source "实际开始授权原文"`。不能把工具返回、预选项、项目记忆或超时当批准；参考图实际审阅通过后才准备视频批次。

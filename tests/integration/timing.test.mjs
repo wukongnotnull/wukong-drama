@@ -29,7 +29,7 @@ function film(pipeline, count = 3, duration = 0.34, fps = 10) {
     });
     return { id, file: 'shots/' + id + '.json', duration };
   });
-  fs.writeFileSync(path.join(dir,'film.json'), JSON.stringify({title:'时序', style:'timing-' + pipeline, size:[32,18],fps,seed:1, generation: {image:{provider:"openai"},video:{provider:"seedance"}},shots,variants:{'9:16':{}}}));
+  fs.writeFileSync(path.join(dir,'film.json'), JSON.stringify({title:'时序', style:'timing-' + pipeline, size:[32,18],fps,seed:1, generation: {image:{provider:"openai"},video:{generate_audio:false,provider:"seedance"}},shots,variants:{'9:16':{}}}));
   return dir;
 }
 function frames(file) {

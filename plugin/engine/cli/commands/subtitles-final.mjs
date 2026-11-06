@@ -94,7 +94,7 @@ export function subtitlesFinalCommands({ pos, opt, log, aspectOpt }) {
     let { mix: audio, tracks, voices,loudness } = await (await import('../../audio/soundtrack.mjs')).mixSoundtrack(filmDir, { log, aspect: o.aspect, includeNative: false });
     ctx=loadFilm(filmDir,{aspect:o.aspect});
     const { video, job, segments } = await render(filmDir, {...o,segmentsOnly:draftOnly});
-    if(ctx.film.generation?.video?.generate_audio) ({mix:audio,tracks,voices,loudness}=await (await import('../../audio/soundtrack.mjs')).mixSoundtrack(filmDir,{log,aspect:o.aspect}));
+    if(ctx.film.generation?.video?.generate_audio !== false) ({mix:audio,tracks,voices,loudness}=await (await import('../../audio/soundtrack.mjs')).mixSoundtrack(filmDir,{log,aspect:o.aspect}));
     if(draftOnly&&subs) {
       subs=readSubtitles(ctx,settings,{missing:`还没有 ${settings.file}，请先制作字幕`});
       if(settings.bilingual){

@@ -15,7 +15,7 @@ function fixture(t) {
   const definition = { image_prompt: '水墨人物', video_prompt: '缓慢抬头', references: ['assets/ref.png'] };
   const shot = { id: 's01', path: path.join(dir, 'shots/s01.json'), duration: 4, frames: 120 };
   fs.writeFileSync(shot.path, JSON.stringify(definition));
-  const job = { filmDir: dir, film: { generation: { image: { provider: 'openai', model: 'image-test', estimated_cost_usd: 0.1 }, video: { provider: 'seedance', model: 'video-test', estimated_cost_cny: 1 }, budget: { image_usd: 10, video_cny: 100, max_video_tasks: 20, max_image_tasks: 20 } } }, style: { id: 'ink-wash' }, variant: { aspect: '16:9' }, designW: 1920, designH: 1080, log() {} };
+  const job = { filmDir: dir, film: { generation: { image: { provider: 'openai', model: 'image-test', estimated_cost_usd: 0.1 }, video: {generate_audio:false, provider: 'seedance', model: 'video-test', estimated_cost_cny: 1 }, budget: { image_usd: 10, video_cny: 100, max_video_tasks: 20, max_image_tasks: 20 } } }, style: { id: 'ink-wash' }, variant: { aspect: '16:9' }, designW: 1920, designH: 1080, log() {} };
   job.shots = [shot];
   fs.writeFileSync(path.join(dir, 'film.json'), JSON.stringify({ ...job.film, shots: [{ file: 'shots/s01.json' }] }));
   approveEmptySettings(dir,job.style.id);

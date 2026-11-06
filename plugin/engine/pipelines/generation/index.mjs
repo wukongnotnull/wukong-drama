@@ -39,7 +39,7 @@ export function validateSourceVideo(job, shot, source, {generated = false, info 
   return profile;
 }
 async function preserveAudio(job, shot, source, info) {
-  if (!job.film.generation?.video?.generate_audio) return;
+  if (job.film.generation?.video?.generate_audio === false) return;
   if (!info.streams.some(s => s.codec_type === 'audio')) throw new Error(`${shot.id} 要求模型原生声音，但源视频没有音轨`);
   const output = nativeAudioPath(job,shot,source), record = output + '.json';
   let old;

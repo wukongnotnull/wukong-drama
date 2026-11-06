@@ -23,7 +23,7 @@ function makeFilm(shots, extra = {}) {
   fs.mkdirSync(path.join(dir, 'shots'));
   for (const [id, src] of Object.entries(shots)) writeModelShot(path.join(dir, 'shots', `${id}.json`), src);
   const film = {
-    title: 'it', style: 'ink-wash', size: [320, 180], fps: 10, seed: 1, generation: {image:{provider:"openai"},video:{provider:"seedance"}},
+    title: 'it', style: 'ink-wash', size: [320, 180], fps: 10, seed: 1, generation: {image:{provider:"openai"},video:{generate_audio:false,provider:"seedance"}},
     shots: Object.keys(shots).map((id) => ({ id, file: `shots/${id}.json`, duration: 1 })),
     ...extra,
   };

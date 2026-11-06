@@ -515,7 +515,8 @@
               ]
             },
             "generate_audio": {
-              "type": "boolean"
+              "type": "boolean",
+              "default": true
             },
             "watermark": {
               "type": "boolean"

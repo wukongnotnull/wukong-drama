@@ -3,7 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
-export const generation = { image: { provider: 'openai' }, video: { provider: 'seedance' } };
+// Generic imported video fixtures are silent; native-audio cases create their own audio-bearing clips.
+export const generation = { image: { provider: 'openai' }, video: {generate_audio:false, provider: 'seedance' } };
 export function writeModelShot(file, { color = '#F2EDE3', duration = 4, size = [320, 180], fps = 30, filter, revision = 'fixture' } = {}) {
   const filmDir = path.basename(path.dirname(file)) === 'shots' ? path.dirname(path.dirname(file)) : path.dirname(file);
   const base = path.basename(file, '.json'), assets = path.join(filmDir, 'assets', 'fixture');

@@ -113,6 +113,31 @@ test('invalid image responses preserve the previous output and leave no temporar
 });
 
 const videoConfig = config => ({ ...config, model: 'doubao-seedance-2-5-260628', resolution: '720p', generate_audio: true });
+for (const model of ['doubao-seedance-2-5-260628', 'doubao-seedance-2-0-pro']) {
+  test(`${model} defaults to native audio and preserves explicit false`, async t => {
+    const s = await setup(t, (_req, res) => json(res, { id: 'cgt-audio' }));
+    const image = path.join(s.dir, 'first.png');fs.writeFileSync(image, png);
+    for (const audio of [undefined, false]) {
+      const config = { ...s.config, model, ...(audio === undefined ? {} : { generate_audio: audio }) };
+      const args = { config, image, prompt: '猫走路，无对白', duration: 4, ratio: '16:9' };
+      assert.equal(s.api.validateVideoRequest(args, s.options).config.generate_audio, audio ?? true);
+      await s.api.submitVideo(args, s.options);
+      assert.equal(s.calls.at(-1).body.generate_audio, audio ?? true);
+    }
+    assert.equal(s.calls.length, 2);
+  });
+}
+test('older Seedance requires explicit audio opt-out before submitting a silent task', async t => {
+  const s = await setup(t, (_req, res) => json(res, { id: 'cgt-silent' }));
+  const image = path.join(s.dir, 'first.png');fs.writeFileSync(image, png);
+  const args = { config: { ...s.config, model: 'doubao-seedance-1-0-pro' }, image, prompt: '猫走路', duration: 4 };
+  assert.throws(() => s.api.validateVideoRequest(args, s.options), { code: 'unsupported_parameter' });
+  await assert.rejects(s.api.submitVideo(args, s.options), { code: 'unsupported_parameter' });
+  assert.equal(s.calls.length, 0);
+  await s.api.submitVideo({ ...args, config: { ...args.config, generate_audio: false } }, s.options);
+  assert.equal(s.calls.length, 1);
+  assert.equal(Object.hasOwn(s.calls[0].body, 'generate_audio'), false);
+});
 test('video preflight supports 30-second Seedance 2.5 and validates before a still exists', async t => {
   const s = await setup(t, (_req, res) => json(res, {}));
   assert.equal(typeof s.api.validateVideoRequest, 'function');

@@ -21,6 +21,7 @@ for (const style of ['anime', 'cinematic', 'ink-wash']) {
     const json = JSON.parse(fs.readFileSync(path.join(film, 'film.json'), 'utf8'));
     assert.equal(json.shots[0].file, 'shots/s01.json');
     assert.equal(json.generation.video.provider, 'seedance');
+    assert.equal(json.generation.video.generate_audio, true, 'new films default to native model audio');
     assert.equal(json.scripts, undefined);
   });
 }

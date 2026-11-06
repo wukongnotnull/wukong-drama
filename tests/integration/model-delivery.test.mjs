@@ -9,24 +9,27 @@ import { runCli } from '../../plugin/engine/cli/run.mjs';
 import { shotHashes, preview } from '../../plugin/engine/core/job.mjs';
 import { cleanRenderCache } from '../../plugin/engine/core/cache.mjs';
 
-for(const style of ['anime','cinematic','ink-wash']) test(`${style}: imported model clips retain native audio through preview, final MP4 and cache cleanup`,async t=>{
+for(const style of ['anime','cinematic','ink-wash'])for(const mode of ['default','omitted','disabled']) test(`${style}: native audio ${mode} through preview, final MP4 and cache cleanup`,async t=>{
  const root=fs.mkdtempSync(path.join(os.tmpdir(),'wkd-model-delivery-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
  const messages=[],io={log:x=>messages.push(x),error:x=>messages.push(x)};
  assert.equal(await runCli(['init','demo','--dir',root,'--style',style,'--aspect','16:9'],io),0,messages.join('\n'));
  const dir=path.join(root,'films/demo'),source=path.join(dir,'assets/source.mp4');
  execFileSync('ffmpeg',['-v','error','-f','lavfi','-i','color=c=blue:s=320x180:r=24','-f','lavfi','-i','sine=frequency=440:sample_rate=48000','-t','1','-c:v','libx264','-pix_fmt','yuv420p','-c:a','aac',source]);
  const file=path.join(dir,'film.json'),film=JSON.parse(fs.readFileSync(file));
- film.size=[320,180];film.fps=24;film.shots[0].duration=1;film.generation.video.generate_audio=true;
+ assert.equal(film.generation.video.generate_audio,true);
+ film.size=[320,180];film.fps=24;film.shots[0].duration=1;
+ if(mode==='omitted')delete film.generation.video.generate_audio;
+ if(mode==='disabled')film.generation.video.generate_audio=false;
  fs.writeFileSync(file,JSON.stringify(film));fs.writeFileSync(path.join(dir,'shots/s01.json'),JSON.stringify({video:'assets/source.mp4'}));
  approveEmptySettings(dir);
  assert.equal(await runCli(['final',dir],io),0,messages.join('\n'));
  const out=path.join(dir,'out.mp4');
  const probe=JSON.parse(execFileSync('ffprobe',['-v','error','-show_streams','-show_format','-of','json',out]));
- assert.ok(probe.streams.some(s=>s.codec_type==='audio'),'native soundtrack must survive final export');
+ assert.equal(probe.streams.some(s=>s.codec_type==='audio'),mode!=='disabled','audio choice survives final export');
  assert.equal(probe.streams.find(s=>s.codec_type==='video').nb_frames,'24');
  const previews=await preview(dir,{log(){}});assert.equal(previews.length,1);
  const audio=JSON.parse(execFileSync('ffprobe',['-v','error','-show_streams','-of','json',previews[0]]));
- assert.ok(audio.streams.some(s=>s.codec_type==='audio'));
+ assert.equal(audio.streams.some(s=>s.codec_type==='audio'),mode!=='disabled','audio choice survives preview');
  const before=shotHashes(dir);cleanRenderCache(path.join(dir,'.cache'));assert.ok(fs.existsSync(source));
  fs.appendFileSync(source,Buffer.from([0,0]));assert.notDeepEqual(shotHashes(dir),before,'source byte changes must invalidate shot cache');
  assert.ok(!fs.existsSync(path.join(dir,'.wkd/generation-ledger.json')),'imports must not reserve paid jobs');

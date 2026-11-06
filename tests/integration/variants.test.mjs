@@ -27,7 +27,7 @@ function makeFilm(extra = {}) {
   writeModelShot(path.join(dir, 'shots', 's02.json'), BRANCHED);
   writeModelShot(path.join(dir, 'shots', 's02.9x16.json'), {color:'#0000FF'});
   const film = {
-    title: 'it', style: 'ink-wash', size: [320, 180], fps: 10, seed: 1, generation: {image:{provider:"openai"},video:{provider:"seedance"}},
+    title: 'it', style: 'ink-wash', size: [320, 180], fps: 10, seed: 1, generation: {image:{provider:"openai"},video:{generate_audio:false,provider:"seedance"}},
     shots: [{ id: 's01', file: 'shots/s01.json', duration: 1 }, { id: 's02', file: 'shots/s02.json', duration: 1 }],
     variants: { '9:16': {} },
     export: { name: 'it' },

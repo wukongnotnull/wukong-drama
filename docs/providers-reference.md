@@ -15,6 +15,12 @@
 
 密钥只放在实际运行环境，api_key_env 填环境变量名，不填密钥值。base_url 可配置服务地址，必须使用 HTTPS；仅本机测试地址允许 HTTP。不要展示密钥或把它写入工程。
 
+## 声音
+
+新片和 Seedance 请求默认 generate_audio 为 true，省略时也按开启处理。模型原生声音随视频保存并进入预览、成片和剪映；它是一条混合音轨，不会自动分离人声、配乐和音效。
+
+需要无声画面或独立后期时，在 film.json 的 generation.video 中显式设置 `"generate_audio": false`；已有 false 保持关闭。不支持原生声音的旧型号也须显式关闭，提交前会检查，不自动降级。切换后重新核对计划和费用，等待本批开始授权。
+
 ## 费用与任务上限
 
 - 每请求估价：图片填 estimated_cost_usd，视频填 estimated_cost_cny，均放在对应生成配置中。

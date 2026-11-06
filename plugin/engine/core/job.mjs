@@ -169,8 +169,8 @@ export async function render(filmDir, { proxy = false, only = null, selected = n
 /** 日常局部审阅：不拼接整片，不生成整片验收证据。 */
 export async function preview(filmDir, { only = null, proxy = true, aspect = null, force = false, log = console.log } = {}) {
   const { job, segments } = await render(filmDir, { proxy, selected: only, daily: true, segmentsOnly: true, aspect, force, log });
-  if(job.film.generation?.video?.generate_audio) await mixSoundtrack(filmDir,{aspect,log});
-  const mix = path.join(job.film.generation?.video?.generate_audio?job.variant.cacheDir:path.join(job.filmDir,'.cache'), 'mix.wav');
+  if(job.film.generation?.video?.generate_audio !== false) await mixSoundtrack(filmDir,{aspect,log});
+  const mix = path.join((job.film.generation?.video?.generate_audio !== false)?job.variant.cacheDir:path.join(job.filmDir,'.cache'), 'mix.wav');
   const audio = fs.existsSync(mix) ? fileDigest(mix) : null;
   if (!audio) log('  ! 没有现成声轨，局部小样为无声；需要声音请先运行 wkd soundtrack');
   const directory = path.join(job.filmDir, 'review', job.variant.review(proxy ? '局部小样' : '局部原画质'));

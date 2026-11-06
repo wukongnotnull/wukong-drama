@@ -57,8 +57,8 @@ export function mediaCommands({ pos, opt, log, aspectOpt }) {
       let sourceGeneration=null;
       try{sourceGeneration=captureFinalProxy(pos[0],{aspect:aspectOpt()});}catch(e){log(`  ! 小样来源未取证，保留渲染结果：${e.message}`);}
       // 小样配上声轨，放进 review/ 交给用户审阅
-      if(job.film.generation?.video?.generate_audio) await mixSoundtrack(pos[0],{aspect:aspectOpt(),log});
-      const mix = path.join(job.film.generation?.video?.generate_audio?job.variant.cacheDir:path.join(path.resolve(pos[0]),'.cache'), 'mix.wav');
+      if(job.film.generation?.video?.generate_audio !== false) await mixSoundtrack(pos[0],{aspect:aspectOpt(),log});
+      const mix = path.join((job.film.generation?.video?.generate_audio !== false)?job.variant.cacheDir:path.join(path.resolve(pos[0]),'.cache'), 'mix.wav');
       const hasMix = fs.existsSync(mix);
       if (!hasMix) log('  ! 没有 .cache/mix.wav，小样不带声音（先运行 wkd soundtrack）');
       const args = hasMix ? ['-i', video, '-i', mix, '-map', '0:v:0', '-map', '1:a:0', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', ...generatedMixPadding(mix,job.timeline.duration,job.fps), '-shortest'] : ['-i', video, '-c', 'copy'];

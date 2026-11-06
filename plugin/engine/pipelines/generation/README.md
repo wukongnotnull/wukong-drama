@@ -8,4 +8,4 @@
 
 `renderStills()` 优先从已有视频提取真实画面；视频尚未生成时使用分镜图。所有付费生成均须有匹配当前输入的批次授权、已核实估算及任务数量上限。
 
-`assets/generated/` 保留原始素材和任务状态。启用 `generation.video.generate_audio` 时，原生音轨另存完整 WAV，供后期按镜头摆放和裁切。`.cache` 清理不删除这些源素材。
+`assets/generated/` 保留原始素材和任务状态。`generation.video.generate_audio` 默认 true（省略同样开启），显式 false 关闭。开启时，原生音轨另存完整 WAV，供后期按镜头摆放和裁切。`.cache` 清理不删除这些源素材。

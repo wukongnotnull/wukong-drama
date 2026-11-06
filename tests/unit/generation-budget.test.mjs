@@ -13,7 +13,7 @@ function fixture(t) {
   fs.writeFileSync(shot.path, JSON.stringify({ image_prompt: 'cat', video_prompt: 'cat runs' }));
   const job = { filmDir: dir, film: { size: [1280,720], generation: {
     image: { model: 'test-image', estimated_cost_usd: 0.2 },
-    video: { model: 'test-video', estimated_cost_cny: 2 },
+    video: { generate_audio: false, model: 'test-video', estimated_cost_cny: 2 },
     budget: { image_usd: 1, video_cny: 3, max_image_tasks: 2, max_video_tasks: 1 },
   } }, variant: { aspect: '16:9' }, style: { id: 'cartoon' }, shots: [shot] };
   const counts = { image: 0, video: 0 };

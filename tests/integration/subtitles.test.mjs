@@ -25,7 +25,7 @@ function makeFilm(subtitles) {
   for (const id of ['s01', 's02']) writeModelShot(path.join(dir, 'shots', `${id}.json`));
   tone(path.join(dir, 'audio', 'vo1.wav'), 0.6);
   const film = {
-    title: 'sub-it', style: 'ink-wash', size: [W, H], fps: 10, seed: 1, generation: {image:{provider:"openai"},video:{provider:"seedance"}},
+    title: 'sub-it', style: 'ink-wash', size: [W, H], fps: 10, seed: 1, generation: {image:{provider:"openai"},video:{generate_audio:false,provider:"seedance"}},
     shots: ['s01', 's02'].map((id) => ({ id, file: `shots/${id}.json`, duration: 1 })),
     audio: { voice_source: 'user', voices: [{ text: '山不说话。', at: 0.2, file: 'audio/vo1.wav' }] },
     export: { formats: ['mp4'], name: 'out' },

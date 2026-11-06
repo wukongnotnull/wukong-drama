@@ -19,7 +19,7 @@ for (const style of ['ink-wash', 'anime']) test(`${style} 主版证明复用，�
   const file = path.join(dir, 'shots', `s01.${ext}`);
   const source=JSON.stringify(writeModelShot(file,{color:'white'}));
   fs.writeFileSync(file, source);
-  const film = { title: 'proof', style, size: [160,90], fps: 10, seed: 1, generation: {image:{provider:"openai"},video:{provider:"seedance"}},cues:{pulse:[0,0.2]}, variants: { '9:16': {} }, shots: [{id:'s01',file:`shots/s01.${ext}`,duration:0.4}] };
+  const film = { title: 'proof', style, size: [160,90], fps: 10, seed: 1, generation: {image:{provider:"openai"},video:{generate_audio:false,provider:"seedance"}},cues:{pulse:[0,0.2]}, variants: { '9:16': {} }, shots: [{id:'s01',file:`shots/s01.${ext}`,duration:0.4}] };
   fs.writeFileSync(path.join(dir,'film.json'), JSON.stringify(film));
   await render(dir,{log:()=>{}});
   recordApproval(dir,{main:snapshotMain(dir,{log:()=>{}}).hashes});

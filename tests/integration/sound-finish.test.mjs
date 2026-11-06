@@ -46,7 +46,7 @@ function makeFilm(style) {
   fs.writeFileSync(path.join(dir, 'audio', 'build.mjs'), BUILD);
   voiceWav(path.join(dir, 'vo.wav'));
   const film = {
-    title: 'it', style, size: [320, 180], fps: 30, seed: 1, generation: {image:{provider:"openai"},video:{provider:"seedance"}},
+    title: 'it', style, size: [320, 180], fps: 30, seed: 1, generation: {image:{provider:"openai"},video:{generate_audio:false,provider:"seedance"}},
     shots: [{ id: 's01', file: 's01.json', duration: 4 }, { id: 's02', file: 's02.json', duration: 4 }],
     audio: { build: 'audio/build.mjs', voice_source: 'user', voices: [{ text: '测试一句人声', at: VOICE.at, file: 'vo.wav', cue: '人声' }] },
   };

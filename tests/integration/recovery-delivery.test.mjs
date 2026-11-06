@@ -21,7 +21,7 @@ for(const style of ['ink-wash','anime'])test(`${style} 实际编码复用、缺�
   const audio=path.join(dir,'audio','人声 [一] #%.wav');
   const tone=spawnSync('ffmpeg',['-v','error','-f','lavfi','-i','sine=frequency=440:duration=0.3','-ar','48000','-y',audio]);assert.equal(tone.status,0);
   const originalAudio=fileDigest(audio);
-  const film={title:'recovery',style,size:[160,90],fps:10,seed:1, generation: {image:{provider:"openai"},video:{provider:"seedance"}},shots:[{id:'s01',file:`shots/s01.${ext}`,duration:0.8}],audio:{voice_source:'user',voices:[{cue:'v',text:'有素材',at:0.1,file:path.relative(dir,audio)}]},export:{name:'成片 #%',formats:['mp4']}};
+  const film={title:'recovery',style,size:[160,90],fps:10,seed:1, generation: {image:{provider:"openai"},video:{generate_audio:false,provider:"seedance"}},shots:[{id:'s01',file:`shots/s01.${ext}`,duration:0.8}],audio:{voice_source:'user',voices:[{cue:'v',text:'有素材',at:0.1,file:path.relative(dir,audio)}]},export:{name:'成片 #%',formats:['mp4']}};
   fs.writeFileSync(path.join(dir,'film.json'),JSON.stringify(film));
   ok(run('final',dir));
   const out=path.join(dir,'成片 #%.mp4'),video=path.join(dir,'.cache/video.mp4'),mtime=fs.statSync(out).mtimeMs;

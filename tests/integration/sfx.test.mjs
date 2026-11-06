@@ -28,7 +28,7 @@ function makeFilm(style) {
   fs.mkdirSync(path.join(dir, 'audio'));
   fs.writeFileSync(path.join(dir, 'audio', 'build.mjs'), BUILD);
   const film = {
-    title: 'it', style, size: [320, 180], fps: 30, seed: 1, generation: {image:{provider:"openai"},video:{provider:"seedance"}},
+    title: 'it', style, size: [320, 180], fps: 30, seed: 1, generation: {image:{provider:"openai"},video:{generate_audio:false,provider:"seedance"}},
     shots: [{ id: 's01', file: 's01.json', duration: 2 }, { id: 's02', file: 's02.json', duration: 2 }],
     audio: { build: 'audio/build.mjs' },
   };

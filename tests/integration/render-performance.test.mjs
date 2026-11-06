@@ -18,7 +18,7 @@ test('日常预览只更新选定或变化的镜头，复用原片段，不拼�
     fs.mkdirSync(path.join(dir,'shots'));
     writeModelShot(path.join(dir,'shots/s01.json'),shot('red'));
     writeModelShot(path.join(dir,'shots/s02.json'),shot('blue'));
-    fs.writeFileSync(path.join(dir,'film.json'),JSON.stringify({title:'preview',style:'ink-wash',size:[320,180],fps:30,seed:1, generation: {image:{provider:"openai"},video:{provider:"seedance"}},shots:[{id:'s01',file:'shots/s01.json',duration:0.4},{id:'s02',file:'shots/s02.json',duration:0.4}]}));
+    fs.writeFileSync(path.join(dir,'film.json'),JSON.stringify({title:'preview',style:'ink-wash',size:[320,180],fps:30,seed:1, generation: {image:{provider:"openai"},video:{generate_audio:false,provider:"seedance"}},shots:[{id:'s01',file:'shots/s01.json',duration:0.4},{id:'s02',file:'shots/s02.json',duration:0.4}]}));
     run('preview',dir,'--only','s01');
     const manifest=()=>JSON.parse(fs.readFileSync(path.join(dir,'.cache/manifest.json'))).shots;
     assert.deepEqual(Object.keys(manifest()),['s01-proxy']);

@@ -32,7 +32,7 @@ function validate(args) {
   for (const name of ['generate_audio', 'watermark', 'return_last_frame']) {
     if (config[name] !== undefined && typeof config[name] !== 'boolean') throw new ProviderError(`${name} 必须是布尔值。`, { code: 'invalid_config' });
   }
-  if (!is25 && !is2 && config.generate_audio === true) throw new ProviderError('原生音频需要 Seedance 2.0/2.5 或明确的 model_family。', { code: 'unsupported_parameter' });
+  if (!is25 && !is2 && config.generate_audio === true) throw new ProviderError('原生音频需要 Seedance 2.0/2.5 或明确的 model_family；无声生成请显式设置 generate_audio: false。', { code: 'unsupported_parameter' });
   if (config.seed !== undefined) {
     if (is25 || is2) throw new ProviderError('当前官方接口仅为 Seedance 1.0 系列声明 seed 参数支持。', { code: 'unsupported_parameter' });
     if (!Number.isInteger(config.seed) || config.seed < -1 || config.seed > 2147483647) throw new ProviderError('seed 必须为 -1–2147483647 的整数。', { code: 'invalid_config' });
@@ -55,7 +55,7 @@ function safeMetadata(response) {
 }
 
 export const seedance = {
-  defaults: { base_url: 'https://ark.cn-beijing.volces.com/api/v3', api_key_env: 'ARK_API_KEY', request_timeout_ms: 30_000 },
+  defaults: { generate_audio: true, base_url: 'https://ark.cn-beijing.volces.com/api/v3', api_key_env: 'ARK_API_KEY', request_timeout_ms: 30_000 },
   model: env => env.SEEDANCE_MODEL || '',
   validate,
   async validateInput(args) {
@@ -73,7 +73,7 @@ export const seedance = {
       duration,
       ratio,
       resolution: config.resolution ?? '720p',
-      ...(is25 || is2 ? { generate_audio: config.generate_audio ?? false } : {}),
+      ...(is25 || is2 ? { generate_audio: config.generate_audio ?? true } : {}),
       watermark: config.watermark ?? true,
       return_last_frame: config.return_last_frame ?? false,
     };

@@ -168,7 +168,7 @@ function writeVoiceCues(ctx, lines, vo, log) {
  */
 export async function mixSoundtrack(filmDir, { log = console.log, aspect = null, includeNative = true } = {}) {
   const ctx=loadFilm(filmDir,{requireShots:false,aspect}),audio=ctx.film.audio||{};
-  const native=includeNative&&ctx.film.generation?.video?.generate_audio?nativeAudioTracks(ctx):[];
+  const native=includeNative&&(ctx.film.generation?.video?.generate_audio !== false)?nativeAudioTracks(ctx):[];
   const files=[...native,...(audio.tracks||[]),...(audio.voices||[])].filter(t=>t.file).map(t=>path.resolve(ctx.filmDir,t.file));
   const signature=audio.build?null:digest({audio,native,shots:ctx.shots.map(s=>[s.id,s.duration]),style:ctx.style.loudness,files:files.map(file=>[file,fileDigest(file)]),engine:treeEvidence(path.join(ENGINE_ROOT,'audio'))});
   const value=await runStage(ctx.filmDir,{stage:'soundtrack',aspect:ctx.variant.aspect,signature,log,onReuse:()=>{if(audio.voices?.length)log('  · 声音同步点未变化（完整声轨与同步点文件已核对）');},run:async()=>{
@@ -185,13 +185,13 @@ export async function mixSoundtrack(filmDir, { log = console.log, aspect = null,
 }
 
 async function mixSoundtrackFresh(filmDir, { log = console.log, aspect = null, includeNative = true } = {}) {
-  // 声轨在画镜头之前做（第 7 道），只用到镜头时长，不要求镜头文件已经写好
+  // 独立声轨可提前制作；原生音轨在镜头生成后混入，不要求全部镜头描述已完成
   const ctx = loadFilm(filmDir, { requireShots: false, aspect });
   const audio = ctx.film.audio || {};
   checkCueNames(audio.voices || []);
   const genDir = path.join(ctx.filmDir, 'audio', 'generated');
   fs.mkdirSync(genDir, { recursive: true });
-  const tracks = includeNative&&ctx.film.generation?.video?.generate_audio ? nativeAudioTracks(ctx).map(t=>({...t,role:'track',gain:0})) : [];
+  const tracks = includeNative&&(ctx.film.generation?.video?.generate_audio !== false) ? nativeAudioTracks(ctx).map(t=>({...t,role:'track',gain:0})) : [];
   let lib = null;
   let sfx = null;
 

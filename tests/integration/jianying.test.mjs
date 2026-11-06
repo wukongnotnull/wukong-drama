@@ -39,7 +39,7 @@ function makeFilm({ voices } = {}) {
   tone(path.join(dir, 'audio', 'bgm.wav'), 3);
   gapped(path.join(dir, 'audio', 'gap.wav'));
   const film = {
-    title: 'jy-it', style: 'ink-wash', size: [320, 180], fps: 10, seed: 1, generation: {image:{provider:"openai"},video:{provider:"seedance"}},
+    title: 'jy-it', style: 'ink-wash', size: [320, 180], fps: 10, seed: 1, generation: {image:{provider:"openai"},video:{generate_audio:false,provider:"seedance"}},
     shots: ['s01', 's02'].map((id) => ({ id, file: `shots/${id}.json`, duration: 1 })),
     audio: {
       build: 'audio/build.mjs',

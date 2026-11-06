@@ -40,7 +40,7 @@ test('video CLI approval requires the exact displayed plan signature',async t=>{
  assert.equal(await runCli(['init','demo','--dir',root],io),0);
  const dir=path.join(root,'films/demo');approveEmptySettings(dir);
  const filmFile=path.join(dir,'film.json'),film=JSON.parse(fs.readFileSync(filmFile));
- film.generation.video={provider:'seedance',model:'video-test',estimated_cost_cny:1};
+ film.generation.video={generate_audio:false,provider:'seedance',model:'video-test',estimated_cost_cny:1};
  film.generation.budget={video_cny:100,max_video_tasks:20};
  fs.writeFileSync(filmFile,JSON.stringify(film));
  fs.writeFileSync(path.join(dir,'ref.png'),'imported reference');

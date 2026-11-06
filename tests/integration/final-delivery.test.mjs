@@ -13,7 +13,7 @@ const pythonReady=spawnSync('python3',['-c','import pyJianYingDraft'],{stdio:'ig
 const run=(...args)=>spawnSync(process.execPath,[cli,...args],{encoding:'utf8',env:{...process.env,WKD_NO_FONT_DOWNLOAD:'1',WKD_JIANYING_PROCESS:'wkd-nonexistent-test-process'}});
 test('A3/A9 final CLI reports missing items with exit 2 and only writes four reports',t=>{
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'wkd-final-cli-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
-  fs.writeFileSync(path.join(dir,'film.json'),JSON.stringify({title:'film',style:'ink-wash',size:[160,90],fps:10,seed:1, generation: {image:{provider:"openai"},video:{provider:"seedance"}},shots:[{id:'s01',file:'shots/s01.json',duration:1}]}));
+  fs.writeFileSync(path.join(dir,'film.json'),JSON.stringify({title:'film',style:'ink-wash',size:[160,90],fps:10,seed:1, generation: {image:{provider:"openai"},video:{generate_audio:false,provider:"seedance"}},shots:[{id:'s01',file:'shots/s01.json',duration:1}]}));
   fs.mkdirSync(path.join(dir,'shots'));fs.writeFileSync(path.join(dir,'shots/s01.json'),'{}');
   const out=run('delivery',dir,'--final','--json','--host','generic');
   assert.equal(out.status,2,out.stderr);const report=JSON.parse(out.stdout);
@@ -32,7 +32,7 @@ test('A4/A5/A11 real video, SRT and draft export bind existing signoff nodes and
   const style=JSON.parse(fs.readFileSync('plugin/skills/ink-wash/style.json'));Object.assign(style,{id:'delivery-fixture'});
   fs.writeFileSync(path.join(home,'styles/delivery-fixture/style.json'),JSON.stringify(style));
   writeModelShot(path.join(dir,'shots/s01.json'), {color:'white', filter:'drawbox=x=10:y=10:w=30:h=30:color=black:t=fill'});
-  fs.writeFileSync(path.join(dir,'film.json'),JSON.stringify({title:'delivery',style:'delivery-fixture',size:[320,180],fps:10,seed:1, generation: {image:{provider:"openai"},video:{provider:"seedance"}},shots:[{id:'s01',file:'shots/s01.json',duration:1}],export:{name:'交付 #%',formats:['mp4']}}));
+  fs.writeFileSync(path.join(dir,'film.json'),JSON.stringify({title:'delivery',style:'delivery-fixture',size:[320,180],fps:10,seed:1, generation: {image:{provider:"openai"},video:{generate_audio:false,provider:"seedance"}},shots:[{id:'s01',file:'shots/s01.json',duration:1}],export:{name:'交付 #%',formats:['mp4']}}));
   const decisions={version:1,...Object.fromEntries(Object.entries({delivery:'video-and-draft',aspects:['16:9'],subtitles:{mode:'none',bilingual:false}}).map(([k,value])=>[k,{status:'confirmed',value,source:'测试中的明确用户选择'}]))};
   fs.writeFileSync(path.join(dir,'.wkd/decisions.json'),JSON.stringify(decisions));
   const call=(...args)=>spawnSync(process.execPath,[cli,...args],{encoding:'utf8',env:{...process.env,WKD_NO_FONT_DOWNLOAD:'1',WUKONG_DRAMA_HOME:home,WKD_JIANYING_DRAFTS:drafts,WKD_JIANYING_PROCESS:'wkd-nonexistent-test-process'}});
