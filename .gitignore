@@ -1,31 +1,59 @@
+# 依赖与缓存
 node_modules/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.cache/
+coverage/
+.nyc_output/
+
+# 构建与临时产物
+dist/
+outputs/
+tmp/
+.tmp-home/
+*.log
+*.tmp
+*.part
+
+# 本地作品与制作状态
 films/
 frames/
-.cache/
-*.mp4
-*.mov
-*.webm
-!plugin/skills/cinematic/examples/stealing-kitten/media/**/*.mp4
-!plugin/skills/cinematic/examples/stealing-kitten/media/**/*.wav
-.DS_Store
-__pycache__/
-# 在 examples/ 里制作示范片时的进度与中间产物（配音、静帧、审片文件），只提交源文件
-plugin/skills/*/examples/*/.wkd/
+.wkd/
+.wkd-series/
+.wkd-settings/
 plugin/skills/*/examples/*/stills/
 plugin/skills/*/examples/*/review/
 plugin/skills/*/examples/*/audio/generated/
+plugin/skills/*/examples/*/assets/generated/
 plugin/skills/*/examples/*/*.gif
 plugin/skills/*/examples/*/*_字幕.srt
 plugin/skills/*/examples/*/*_英文字幕.srt
 
-# 可移植发布构建产物
-dist/
+# 音视频产物；保留已授权的示范片素材
+*.mp4
+*.mov
+*.webm
+*.wav
+*.mp3
+*.m4a
+!plugin/skills/cinematic/examples/stealing-kitten/media/**/*.mp4
+!plugin/skills/cinematic/examples/stealing-kitten/media/**/*.wav
 
-# 本地凭证与开发产物不进入仓库或分发包
+# 凭证；配置示例继续提交
 .env
 .env.*
 !.env.example
 *.pem
-outputs/
-tmp/
-.tmp-home/
+*.key
+*.p12
+*.pfx
+
+# 系统和编辑器临时文件
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
