@@ -12,7 +12,7 @@ import { subtitleSettings,subtitleOutputs } from '../core/subtitles.mjs';
 
 function expectedFiles(dir,ctx,aspect) {
   const active=readJson(path.join(dir,'.cache/active-command.json'));
-  const {cmd,opt}=parseArgs(active?.argv||(readProgress(dir).step>=13?['final',dir]:[]));
+  const {cmd,opt}=parseArgs(active?.argv||(readProgress(dir).step>=11?['final',dir]:[]));
   const settings=subtitleSettings(ctx.film,ctx.variant),proxy=!!opt('proxy'),review=name=>path.join(dir,'review',ctx.variant.review(name));
   if(cmd==='soundtrack')return ctx.film.audio?.build||ctx.film.audio?.tracks?.length||(ctx.film.audio?.voice_source!=='none'&&ctx.film.audio?.voices?.length)?[review('声轨.m4a')]:[];
   if(cmd==='animatic')return [review('动态分镜.mp4'),review('接触表.jpg')];

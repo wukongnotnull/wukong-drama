@@ -181,7 +181,7 @@
             "ai",
             "none"
           ],
-          "description": "人声素材来源：user = 用户自供录音；ai = AI配音；none = 无人声。第7道工序审片节点⑥由用户签批。"
+          "description": "人声素材来源：user = 用户自供录音；ai = AI配音；none = 无独立人声。按需配置，声音随视频小样审查。"
         }
       }
     },
@@ -217,7 +217,7 @@
       "required": [
         "mode"
       ],
-      "description": "字幕（第 10 道工序）：以片目录里的 srt 为准，由 wkd subtitles 从人声生成。没有这个字段即不出字幕",
+      "description": "字幕（第 9 道工序）：以片目录里的 srt 为准，由 wkd subtitles 从人声生成。没有这个字段即不出字幕",
       "properties": {
         "mode": {
           "type": "string",

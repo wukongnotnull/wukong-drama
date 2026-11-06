@@ -1,6 +1,6 @@
 # 第一步：安装插件
 
-需要一个能读写文件、运行制作工具的 AI 助手。当前版本：**0.1.0**。从 [下载页](https://github.com/wukongnotnull/wukong-drama/releases/tag/v0.1.0) 获取安装包；需要源码时看 [GitHub 仓库](https://github.com/wukongnotnull/wukong-drama)。
+需要一个能读写文件、运行制作工具的 AI 助手。已发布版本：**0.1.0**；当前源码：0.2.0。从 [下载页](https://github.com/wukongnotnull/wukong-drama/releases/tag/v0.1.0) 获取安装包；需要源码时看 [GitHub 仓库](https://github.com/wukongnotnull/wukong-drama)。
 
 ## 把这段话发给助手
 

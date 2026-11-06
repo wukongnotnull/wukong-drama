@@ -2,7 +2,7 @@
 
 普通用户先看[安装和开始使用](agent-installation.md)。这里保留具体命令、安装位置和检查规则，供执行安装时查阅。
 
-当前本地构建包版本为 0.1.0，portable 文件为 `wukong-drama-agent-skills-v0.1.0.zip` 与同一次构建的 SHA256SUMS；原生插件包为 `wukong-drama-plugin-v0.1.0.zip` 与相邻的 .sha256 文件。下载见 [GitHub Release](https://github.com/wukongnotnull/wukong-drama/releases/tag/v0.1.0)。两个包的用途不同：Codex 本地原生安装直接使用仓库中的 marketplace，其他支持 Agent Skills 的工具可使用 portable 包。
+当前本地构建包版本为 0.2.0，portable 文件为 `wukong-drama-agent-skills-v0.2.0.zip` 与同一次构建的 SHA256SUMS；原生插件包为 `wukong-drama-plugin-v0.2.0.zip` 与相邻的 .sha256 文件。已发布安装包见 [GitHub Release](https://github.com/wukongnotnull/wukong-drama/releases/tag/v0.1.0)，源码版本尚未发布时不要寻找同号安装包。两个包的用途不同：Codex 本地原生安装直接使用仓库中的 marketplace，其他支持 Agent Skills 的工具可使用 portable 包。
 
 ## Codex 本地原生安装
 

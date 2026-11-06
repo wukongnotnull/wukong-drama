@@ -36,11 +36,11 @@ function approve(f) {
   return f.api.approveSettings(f.dir,{expectedSignature:review.signature,source:'用户确认当前设定文字与参考图'});
 }
 
-test('16 steps include settings before storyboard; migration preserves proof without inventing settings approval',()=>{
-  assert.equal(LAST_STEP,16);assert.equal(Object.keys(REVIEW_GATES).length,13);
+test('14 steps include settings before storyboard; migration preserves proof without inventing settings approval',()=>{
+  assert.equal(LAST_STEP,14);assert.equal(Object.keys(REVIEW_GATES).length,11);
   const old={flow:5,step:8,history:[{step:5,note:'分镜通过',approvalId:'prior',signature:'original'}]};
   const {state}=migrateProgress(old);
-  assert.equal(state.flow,6);assert.equal(state.step,9);assert.equal(state.history[0].step,6);
+  assert.equal(state.flow,7);assert.equal(state.step,7);assert.equal(state.history[0].step,6);
   assert.equal(state.history[0].signature,'original');assert.equal(state.history.some(h=>h.step===5),false);
   assert.equal(old.step,8);
 });

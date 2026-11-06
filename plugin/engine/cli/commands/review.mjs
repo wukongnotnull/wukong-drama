@@ -5,7 +5,7 @@ import { shotHashes } from '../../core/job.mjs';
 import { loadFilm } from '../../core/film-context.mjs';
 import { snapshotMain, checkMainUnchanged } from '../../core/approval.mjs';
 import { commitSnapshot } from '../../core/project.mjs';
-import { readProgress, PRODUCTION_STEPS, REVIEW_GATES, LAST_STEP, commitSignoff } from '../../core/state.mjs';
+import { readProgress, PRODUCTION_STEPS, REVIEW_GATES, LAST_STEP, FLOW_VERSION, commitSignoff } from '../../core/state.mjs';
 import { runQc } from '../../core/qc.mjs';
 import { requireSubtitlePreflight } from '../../core/subtitle-preflight.mjs';
 import { requireTiming } from '../../core/timing.mjs';
@@ -19,10 +19,10 @@ import { fail } from '../context.mjs';
 import { approveSettings, settingsReview, requireSettingsInventory, resolveShotSettings, settingSnapshotFiles } from '../../core/settings.mjs';
 
 const SHOT_SIZE_STEP = 6;
-const SUBTITLES_STEP = 11;
-const PROXY_STEP = 12;
-const FINAL_REVIEW_STEP = 14;
-const VARIANT_STEP = 15;
+const SUBTITLES_STEP = 9;
+const PROXY_STEP = 10;
+const FINAL_REVIEW_STEP = 12;
+const VARIANT_STEP = 13;
 
 export function reviewCommands({ pos, opt, log, aspectOpt }) {
   return {
@@ -51,7 +51,11 @@ export function reviewCommands({ pos, opt, log, aspectOpt }) {
         if (problems.length) note = `${note}（景别检查未通过：${problems.join('；')}）`;
       }
       const pendingFile=path.join(path.resolve(pos[0]),'.wkd/pending-approval.json');
-      const pending=readJson(pendingFile),id=String(opt('approval-id')||(pending?.status!=='completed'&&pending?.note===note?pending.id:crypto.randomUUID()));
+      const pending=readJson(pendingFile);
+      const pendingFlow=pending?.flow??pending?.deliveryApproval?.approval?.flow;
+      const legacyPending=pending&&pendingFlow!==FLOW_VERSION;
+      if(legacyPending&&pending.status!=='completed'&&(!opt('approval-id')||String(opt('approval-id'))===pending.id))throw new Error('旧流程待存档批准已保留；请复核当前材料，用当前 --step 和新的 --approval-id 签批，不可自动续用旧流程版本批准');
+      const id=String(opt('approval-id')||(pending?.status!=='completed'&&pending?.note===note?pending.id:crypto.randomUUID()));
       const revision=opt('delivery-revision');
       if(revision===true)throw new Error('--delivery-revision 需要完整摘要');
       const deliveryApproval=revision?prepareFinalApproval(pos[0],{id,step,revision,source:'用户明确签批（signoff）',note,openEvidence:opt('open-status')?{status:opt('open-status'),source:note}:null}):null;
@@ -61,7 +65,12 @@ export function reviewCommands({ pos, opt, log, aspectOpt }) {
       if(existingApproval&&(existingApproval.signature!==signature||existingApproval.step!==(step||readProgress(pos[0]).step)||existingApproval.note!==note))throw new Error('同一批准编号对应的输入或结论发生变化，请核实当前审阅');
       if (step === 5) approveSettings(pos[0], {source:note,expectedSignature:settingsSignature});
       const deliveryProof=deliveryApproval?{deliveryApproval:deliveryApproval.existing&&pending?.deliveryApproval?.review?pending.deliveryApproval:deliveryApproval}:{};
-      atomicJson(pendingFile,{id,step,note,signature,status:'prepared',...deliveryProof});
+      if(legacyPending){
+        const archive=path.join(path.dirname(pendingFile),'pending-approval-history',digest(pending)+'.json');
+        fs.mkdirSync(path.dirname(archive),{recursive:true});
+        if(!fs.existsSync(archive))fs.copyFileSync(pendingFile,archive,fs.constants.COPYFILE_EXCL);
+      }
+      atomicJson(pendingFile,{id,flow:FLOW_VERSION,step,note,signature,status:'prepared',...deliveryProof});
       if (step === FINAL_REVIEW_STEP) {
         const ctx=loadFilm(pos[0]);requireTiming(ctx,{fresh:true,log});await requireSubtitlePreflight(ctx,{proxy:false});
       }
@@ -91,9 +100,9 @@ export function reviewCommands({ pos, opt, log, aspectOpt }) {
       if(!prior&&step===VARIANT_STEP){const {film}=loadFilm(pos[0]);variants=Object.fromEntries(Object.keys(film.variants||{}).map(aspect=>[aspect,shotHashes(pos[0],{aspect})]));}
       commitSignoff(pos[0],{id,step,note,signature,main,variants});
       if(deliveryApproval)commitFinalApproval(pos[0],deliveryApproval);
-      atomicJson(pendingFile,{id,step,note,signature,status:'completed',git:'pending',...deliveryProof});
+      atomicJson(pendingFile,{id,flow:FLOW_VERSION,step,note,signature,status:'completed',git:'pending',...deliveryProof});
       const sha = commitSnapshot(pos[0], note, { log, extraFiles:step===5?settingSnapshotFiles(pos[0]):[] });
-      atomicJson(pendingFile,{id,step,note,signature,status:'completed',git:sha?'committed':'not-confirmed',sha,...deliveryProof});
+      atomicJson(pendingFile,{id,flow:FLOW_VERSION,step,note,signature,status:'completed',git:sha?'committed':'not-confirmed',sha,...deliveryProof});
       if (step) log(`  进度：第 ${step} 道工序「${PRODUCTION_STEPS[step]}」${REVIEW_GATES[step] ? ' · 审片节点 ' + REVIEW_GATES[step] : ''}`);
       void sha;
       return;

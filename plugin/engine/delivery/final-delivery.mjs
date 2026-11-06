@@ -11,13 +11,13 @@ import { validate } from '../core/validate.mjs';
 import { ENGINE_ROOT } from '../core/paths.mjs';
 import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
-import { migrateProgress, assertCompatibleProgress, FLOW_VERSION } from '../core/state.mjs';
+import { migrateProgress, productionStep, assertCompatibleProgress, FLOW_VERSION } from '../core/state.mjs';
 import { outputsMatch } from '../core/operations.mjs';
 import { qcReview, readReviewNotes, isSoftFinding } from '../core/review-evidence.mjs';
 import { qcConfig } from '../core/qc-config.mjs';
 import { spawnSync } from 'node:child_process';
 
-const approvalStep=a=>a.flow===FLOW_VERSION?a.step:migrateProgress({flow:a.flow??5,step:a.step,history:[]}).state.step;
+const approvalStep=a=>productionStep(a.step,a.flow??5);
 const ledgerPath=dir=>path.join(path.resolve(dir),'.wkd/final-delivery.json');
 const latestArtifact=(data,slot)=>data.artifacts.filter(a=>a.slot===slot).reduce((latest,a)=>!latest||Date.parse(a.observedAt||a.generatedAt)>=Date.parse(latest.observedAt||latest.generatedAt)?a:latest,null);
 function json(file,fallback) {
@@ -285,12 +285,12 @@ function technicalStatus(dir,slot,artifact) {
 
 function reviewSets(dir,contract,items,data) {
   const result={};
-  for(const step of [14,16]) {
-    const chosen=items.filter(i=>step===14?i.aspect===contract.mainAspect&&i.kind!=='draft':i.kind==='draft');
+  for(const step of [12,14]) {
+    const chosen=items.filter(i=>step===12?i.aspect===contract.mainAspect&&i.kind!=='draft':i.kind==='draft');
     const bindings=chosen.map(i=>({slot:i.slot,path:i.path,artifactId:i.artifactId,snapshot:i.snapshot,contractDigest:i.contractDigest,source:sourceStatus(dir,i,data.artifacts.find(a=>a.id===i.artifactId)),dependencies:dependencies(dir,i,data.artifacts.find(a=>a.id===i.artifactId)?.dependencies?.fontFiles||[])}));
     result[step]={step,bindings,deliveryRevision:digest({step,bindings})};
   }
-  // 15 仍先审小样。来源和实际小样字节一并绑定，高清生成后才可继承。
+  // 13 仍先审小样。来源和实际小样字节一并绑定，高清生成后才可继承。
   const operations=json(path.join(dir,'.cache/operations.json'),{stages:{}}),bindings=[];
   for(const aspect of [...new Set(contract.slots.map(s=>s.aspect))].filter(a=>a!==contract.mainAspect)) {
     const ctx=loadFilm(dir,{requireShots:false,aspect}),stage=Object.values(operations.stages||{}).find(s=>s.aspect===aspect&&s.proxy&&s.stage==='review:proxy'&&s.status==='completed');
@@ -303,12 +303,12 @@ function reviewSets(dir,contract,items,data) {
     const generated=source&&digest(source.snapshot)===digest(obs.snapshot)&&['picture','audio','renderer','fonts'].every(g=>digest(source.dependencies?.groups[g]||null)===digest(deps?.groups[g]||null));
     bindings.push({slot:`${aspect}/source/proxy`,aspect,path:file,snapshot:obs.snapshot,stageId:generated?source.id:null,contract:contract.slots.filter(s=>s.aspect===aspect&&s.kind!=='draft').map(s=>s.projection),dependencies:deps});
   }
-  result[15]={step:15,bindings,deliveryRevision:digest({step:15,bindings})};
+  result[13]={step:13,bindings,deliveryRevision:digest({step:13,bindings})};
   return result;
 }
 
 export function prepareFinalApproval(dir,{id,step,revision,source,note,openEvidence=null}={}) {
-  if(![14,15,16].includes(step))throw new Error('交付版本绑定只用于既有 14/15/16 节点');
+  if(![12,13,14].includes(step))throw new Error('交付版本绑定只用于12/13/14 节点');
   dir=path.resolve(dir);const report=finalDeliveryReport(dir),set=report.reviewSets[step],data=ledger(dir);
   const old=data.approvals.find(a=>a.id===id);
   if(old){if(old.revision!==revision||approvalStep(old)!==step)throw new Error('同一 approval-id 不能绑定不同交付版本');return {existing:old};}
@@ -316,20 +316,20 @@ export function prepareFinalApproval(dir,{id,step,revision,source,note,openEvide
   if(!source?.trim()||!note?.trim()||!id)throw new Error('交付批准需要实际用户来源、结论及 approval-id');
   if(report.errors.length)throw new Error(`交付决定待核实：${report.errors.join('；')}`);
   if(!set.bindings.length)throw new Error('本节点没有实际产物，沿用既有无产物签批，不制造逐文件验收');
-  if(step===16)requireEditorClosed();
+  if(step===14)requireEditorClosed();
   const artifacts=[],bindings=[];
   for(const binding of set.bindings) {
     if(!binding.snapshot||!binding.path)throw new Error(`审阅产物缺失或不可读：${binding.slot}`);
-    if(step===15){if(!binding.stageId)throw new Error('副版小样缺少成功生成依据');bindings.push(binding);continue;}
+    if(step===13){if(!binding.stageId)throw new Error('副版小样缺少成功生成依据');bindings.push(binding);continue;}
     let artifact=data.artifacts.find(a=>a.id===binding.artifactId);
-    if(!artifact&&step===16) {
+    if(!artifact&&step===14) {
       const item=report.items.find(i=>i.slot===binding.slot);
       artifact={id:null,slot:binding.slot,path:binding.path,aspect:item.aspect,format:item.format,flavor:item.flavor,contractDigest:binding.contractDigest,technical:{status:'unknown'}};
     }
     if(!artifact)throw new Error(`产物缺少生成来源：${binding.slot}`);
     const changed=!artifact.id||digest(artifact.snapshot)!==digest(binding.snapshot);
     let current=artifact;
-    if(changed&&step!==16)throw new Error(`产物在生成后变化，须重新核实：${binding.path}`);
+    if(changed&&step!==14)throw new Error(`产物在生成后变化，须重新核实：${binding.path}`);
     if(changed) {
       if(!['opened','playback-confirmed'].includes(openEvidence?.status)||!openEvidence.source?.trim())throw new Error('手改草稿需要实际打开/播放检查的明确来源');
       const technical=nativeCheck(binding.path);
@@ -341,7 +341,7 @@ export function prepareFinalApproval(dir,{id,step,revision,source,note,openEvide
     bindings.push({slot:binding.slot,artifactId:current.id,path:binding.path,snapshot:binding.snapshot,contractDigest:binding.contractDigest});
   }
   if(openEvidence&&!['opened','playback-confirmed'].includes(openEvidence.status))throw new Error('打开依据仅支持 opened / playback-confirmed');
-  return {artifacts,approval:{id,flow:FLOW_VERSION,step,revision,bindings,source,note,openEvidence,at:new Date().toISOString(),type:step===15?'source':'direct'},review:set};
+  return {artifacts,approval:{id,flow:FLOW_VERSION,step,revision,bindings,source,note,openEvidence,at:new Date().toISOString(),type:step===13?'source':'direct'},review:set};
 }
 
 export function commitFinalApproval(dir,prepared) {
@@ -349,10 +349,10 @@ export function commitFinalApproval(dir,prepared) {
   const data=ledger(dir),approval=prepared.existing||prepared.approval,old=data.approvals.find(a=>a.id===approval.id);
   if(old){if(digest(old)!==digest(approval))throw new Error('批准记录冲突，未覆盖原记录');return old;}
   if(!prepared.review||digest({step:approval.step,bindings:prepared.review.bindings})!==approval.revision)throw new Error('交付批准缺少完整审阅版本证明');
-  if(!progress(dir).history?.some(h=>h.approvalId===approval.id&&h.step===approval.step))throw new Error('既有流程批准尚未成功存档，不能追加交付验收');
-  const current=finalDeliveryReport(dir).reviewSets[approval.step];
-  if(current.deliveryRevision!==approval.revision)throw new Error('批准存档期间交付版本变化，未绑定旧审阅');
-  if(approval.step===16)requireEditorClosed();
+  if(!progress(dir).history?.some(h=>h.approvalId===approval.id&&h.step===approvalStep(approval)))throw new Error('既有流程批准尚未成功存档，不能追加交付验收');
+  const current=finalDeliveryReport(dir).reviewSets[approvalStep(approval)];
+  if(digest({step:approval.step,bindings:current.bindings})!==approval.revision)throw new Error('批准存档期间交付版本变化，未绑定旧审阅');
+  if(approvalStep(approval)===14)requireEditorClosed();
   for(const a of prepared.artifacts||[])if(!data.artifacts.some(old=>old.id===a.id))data.artifacts.push(a);
   const contract=finalContract(dir);if(!data.contracts.some(c=>c.id===contract.id))data.contracts.push(contract);
   data.approvals.push(approval);
@@ -371,14 +371,14 @@ function acceptance(dir,item,artifact,data,history) {
   }
   // 高清只继承实际批准的小样来源；生成证据与相关契约必须逐组匹配。
   if(artifact?.provenance==='generated'&&item.aspect!==finalContract(dir).mainAspect&&item.kind!=='draft'&&item.freshness==='current'&&artifact.technical.status==='passed') {
-    for(const approval of [...data.approvals].reverse().filter(a=>approvalStep(a)===15)) {
+    for(const approval of [...data.approvals].reverse().filter(a=>approvalStep(a)===13)) {
       const binding=approval.bindings.find(b=>b.aspect===item.aspect);
-      if(!binding||binding.dependencies?.unknown.length||!history.some(h=>h.approvalId===approval.id&&h.step===15)||!binding.contract.some(p=>digest(p)===digest(item.projection)))continue;
+      if(!binding||binding.dependencies?.unknown.length||!history.some(h=>h.approvalId===approval.id&&h.step===13)||!binding.contract.some(p=>digest(p)===digest(item.projection)))continue;
       const groups=item.kind==='subtitle'?['zh',...(item.format==='en'?['en']:[])]:['picture','audio',...(item.flavor==='burned'?['zh','en','layout']:[])];
       if(groups.every(g=>digest(binding.dependencies?.groups[g]||null)===digest(artifact.dependencies?.groups[g]||null)))return {acceptance:'accepted',approval:{id:approval.id,type:'inherited',source:approval.source,at:approval.at},openStatus:'not-tested',reason:'来源已批准，高清生成核验通过'};
     }
   }
-  const step=item.kind==='draft'?16:item.aspect===finalContract(dir).mainAspect?14:15;
+  const step=item.kind==='draft'?14:item.aspect===finalContract(dir).mainAspect?12:13;
   return history.some(h=>h.step===step)?{acceptance:'historical-only',reason:'历史已验收，当前版本待核实：缺少确切产物绑定链'}:{acceptance:'pending'};
 }
 

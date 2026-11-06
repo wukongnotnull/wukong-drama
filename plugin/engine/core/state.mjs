@@ -5,7 +5,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { atomicJson } from './evidence.mjs';
 
-/** 16 道工序（与 skills/director/SKILL.md 一致） */
+/** 14 道工序（与 skills/director/SKILL.md 一致） */
 export const PRODUCTION_STEPS = {
   1: '制作环境、工程初始化、恢复在制项目',
   2: '制作简报确认',
@@ -13,27 +13,25 @@ export const PRODUCTION_STEPS = {
   4: '剧本撰写',
   5: '角色／道具／场景设定',
   6: '分镜脚本',
-  7: '人声素材来源',
-  8: '声轨制作',
-  9: '风格帧与动态分镜',
-  10: '镜头制作',
-  11: '字幕制作',
-  12: '小样渲染与技术质检',
-  13: '终版渲染与终混',
-  14: '终检与交付',
-  15: '改版',
-  16: '剪映草稿交付',
+  7: '风格帧与动态分镜',
+  8: '镜头制作',
+  9: '字幕制作',
+  10: '小样渲染与技术质检',
+  11: '终版渲染与终混',
+  12: '终检与交付',
+  13: '改版',
+  14: '剪映草稿交付',
 };
 /** 最后一道工序；签批到这里即全部完成 */
 export const LAST_STEP = Math.max(...Object.keys(PRODUCTION_STEPS).map(Number));
 /** 审片节点所在的工序 */
-export const REVIEW_GATES = { 2: '①制作简报', 3: '②美术定调', 4: '③剧本', 5: '④设定审查', 6: '⑤分镜', 7: '⑥人声素材来源', 8: '⑦声轨审听', 9: '⑧风格帧与动态分镜', 11: '⑨字幕', 12: '⑩小样', 14: '⑪终审', 15: '⑫改版审片', 16: '⑬剪映草稿' };
-export const FLOW_VERSION = 6;
+export const REVIEW_GATES = { 2: '①制作简报', 3: '②美术定调', 4: '③剧本', 5: '④设定审查', 6: '⑤分镜', 7: '⑥风格帧与动态分镜', 9: '⑦字幕', 10: '⑧小样', 12: '⑨终审', 13: '⑩改版审片', 14: '⑪剪映草稿' };
+export const FLOW_VERSION = 7;
 
 /**
  * 进度文件的流程版本：1 = v0.4.0 及以前（没有字幕工序），2 = 第 11 道起为字幕制作，
  * 3 = 第 2 道起为审片节点「①制作简报」，4 = 第 14 道为改版、剪映草稿挪到第 15 道，
- * 5 = 字幕制作挪到第 10 道、小样挪到第 11 道；6 = 第 5 道加入设定审查
+ * 5 = 字幕制作挪到第 10 道、小样挪到第 11 道；6 = 第 5 道加入设定审查；7 = 移除独立声音工序
  */
 const FLOW = FLOW_VERSION;
 /** flow 1 里第 11 道起的工序，在 flow 2 里都往后挪一位 */
@@ -42,6 +40,17 @@ const FLOW1_SHIFT_FROM = 11;
 const FLOW3_SHIFT_FROM = 14;
 /** flow 4 及以前的小样、字幕两道，在 flow 5 里互换 */
 const FLOW4_SWAP = { 10: 11, 11: 10 };
+
+/** 历史工序对应的当前工序；已移除的声音工序返回 null，绝不借用新节点身份。 */
+export function productionStep(step, flow = FLOW_VERSION) {
+  assertFlow({flow});
+  if (flow === FLOW_VERSION) return step;
+  let n = flow < 2 && step >= FLOW1_SHIFT_FROM ? step + 1 : step;
+  if (flow < 4 && n >= FLOW3_SHIFT_FROM) n++;
+  if (flow < 5) n = FLOW4_SWAP[n] || n;
+  if (flow < 6 && n >= 5) n++;
+  return n === 7 || n === 8 ? null : n >= 9 ? n - 2 : n;
+}
 
 const fileOf = (filmDir) => path.join(path.resolve(filmDir), '.wkd', 'state.json');
 
@@ -96,21 +105,17 @@ export function assertProjectCompatible(projectDir) {
 export function migrateProgress(st) {
   const flow = assertFlow(st);
   if (st.flow === FLOW) return { state: st, migrated: false };
-  // 按 flow 逐段平移编号：flow 1 → 2 第 11 道起 +1；flow 2 → 3 只换节点标签；flow 3 → 4 第 14 道起 +1；flow 4 → 5 第 10、11 道互换
-  const shift = (step) => {
-    const s2 = flow < 2 && step >= FLOW1_SHIFT_FROM ? step + 1 : step;
-    return flow < 4 && s2 >= FLOW3_SHIFT_FROM ? s2 + 1 : s2;
-  };
-  const swap = (step) => (flow < 5 && FLOW4_SWAP[step]) || step;
   const history = (st.history || []).map((h) => {
-    const priorStep = swap(shift(h.step));
-    const step = flow < 6 && priorStep >= 5 ? priorStep + 1 : priorStep;
-    return { ...h, step, label: PRODUCTION_STEPS[step] || '', gate: REVIEW_GATES[step] || null };
+    const step = productionStep(h.step, flow);
+    return { ...h, legacy: h.legacy || {flow,...h}, step, label: PRODUCTION_STEPS[step] || h.label || '', gate: REVIEW_GATES[step] || null };
   });
-  // 旧流程停在小样（第 10 道）的片子还没做字幕：退回第 9 道，下一步是新的第 10 道字幕
-  const reached = shift(st.step || 0);
-  const priorStep = flow < 5 && reached === 10 ? 9 : reached;
-  const step = flow < 6 && priorStep >= 5 ? priorStep + 1 : priorStep;
+  // flow 1–4 停在旧小样时先补字幕；停在已移除声音步骤时从新风格帧继续。
+  let reached = st.step || 0;
+  if (flow < 2 && reached >= FLOW1_SHIFT_FROM) reached++;
+  if (flow < 4 && reached >= FLOW3_SHIFT_FROM) reached++;
+  if (flow < 5 && reached === 10) reached = 9;
+  if (flow < 6 && reached >= 5) reached++;
+  const step = reached === 7 || reached === 8 ? 6 : reached >= 9 ? reached - 2 : reached;
   return { state: { ...st, flow: FLOW, step, history }, migrated: true };
 }
 
@@ -146,8 +151,8 @@ export function recordProgress(filmDir, { step, note = '', sha = null }) {
 
 /**
  * 记录签批时的镜头哈希（进 git，换机器也能判断哪些镜头动过）：
- * - { main }：第 14 道终审，主版每镜的哈希 → approved.main
- * - { variant, shots }：第 15 道改版审片，副版每镜的哈希，连同当时的 approved.main → approved.variants[画幅]
+ * - { main }：第 12 道终审，主版每镜的哈希 → approved.main
+ * - { variant, shots }：第 13 道改版审片，副版每镜的哈希，连同当时的 approved.main → approved.variants[画幅]
  */
 export function recordApproval(filmDir, { main = null, variant = null, shots = null }) {
   const st = readProgress(filmDir);
@@ -176,7 +181,7 @@ export function commitSignoff(filmDir,{id,step,note,signature,main=null,variants
 
 const sameHashes = (a, b) => JSON.stringify(a || null) === JSON.stringify(b || null);
 
-/** 副版签批之后主版又在第 14 道签批过、且主版镜头哈希变了：副版过期，要重做第 15 道。没签批过的副版不算过期。 */
+/** 副版签批之后主版又在第 12 道签批过、且主版镜头哈希变了：副版过期，要重做第 13 道。没签批过的副版不算过期。 */
 export function variantStale(st, aspect) {
   const v = st.approved?.variants?.[aspect];
   return !!v && !sameHashes(v.main, st.approved.main);

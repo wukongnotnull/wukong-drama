@@ -50,7 +50,7 @@ export function subtitlesFinalCommands({ pos, opt, log, aspectOpt }) {
       return;
     }
     const layout = !fs.existsSync(path.join(ctx.variant.cacheDir, 'timing-proxy.json')) || !checkTiming(ctx, { proxy: true }).ok;
-    if (preview && layout) fail(`还没有当前的小样，不能烧录预览：先 wkd render ${filmDir} --proxy${aspect ? ` --aspect ${aspect}` : ''}；第 10 道字幕用 --preflight 做版式预检`);
+    if (preview && layout) fail(`还没有当前的小样，不能烧录预览：先 wkd render ${filmDir} --proxy${aspect ? ` --aspect ${aspect}` : ''}；第 9 道字幕用 --preflight 做版式预检`);
     const video = path.join(ctx.variant.cacheDir, 'video-proxy.mp4');
     const checked = await preflightSubtitles(ctx,{proxy:true,video,subs,layout,log});
     registerSubtitleEvidence(ctx,checked,true,layout);
@@ -69,7 +69,7 @@ export function subtitlesFinalCommands({ pos, opt, log, aspectOpt }) {
     if (o.aspect !== 'all') return cmdFinal(filmDir, o);
     const { film } = loadFilm(filmDir);
     const stale = staleVariants(readProgress(filmDir));
-    if (stale.length) fail(`${stale.join('、')} 副版已过期：主版在第 14 道重新签批过，先重做第 15 道「改版」并签批，再出全部画幅`);
+    if (stale.length) fail(`${stale.join('、')} 副版已过期：主版在第 12 道重新签批过，先重做第 13 道「改版」并签批，再出全部画幅`);
     for (const aspect of listAspects(film)) {
       log(`\n── ${aspect}${aspect === listAspects(film)[0] ? ' 主版' : ' 副版'} ──`);
       await cmdFinal(filmDir, { ...o, aspect });
@@ -81,10 +81,10 @@ export function subtitlesFinalCommands({ pos, opt, log, aspectOpt }) {
     const conflicts=decisionConflicts(ctx,readDecisions(ctx.filmDir));if(conflicts.length)throw new Error(conflicts.join('；'));
     if (!ctx.variant.isMain) {
       if (variantStale(readProgress(filmDir), ctx.variant.aspect)) {
-        fail(`${ctx.variant.aspect} 副版已过期：主版在第 14 道重新签批过，先重做第 15 道「改版」并签批，再出副版成片`);
+        fail(`${ctx.variant.aspect} 副版已过期：主版在第 12 道重新签批过，先重做第 13 道「改版」并签批，再出副版成片`);
       }
       const mainCheck = await checkMainUnchanged(filmDir, { aspect: o.aspect, log });
-      if (mainCheck?.timingChanged) fail('主版时间轴已变化，请先明确重出主版并完成第 14 道终审，再导出副版');
+      if (mainCheck?.timingChanged) fail('主版时间轴已变化，请先明确重出主版并完成第 12 道终审，再导出副版');
     }
     const settings = subtitleSettings(ctx.film, ctx.variant);
     const formats = o.formats ? String(o.formats).split(',') : ctx.film.export?.formats || ['mp4'];

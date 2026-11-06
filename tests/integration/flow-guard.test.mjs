@@ -13,7 +13,7 @@ import { writeFinalDelivery, recordFinalEvidence, recordFinalArtifact, commitFin
 import { initProject, commitSnapshot } from '../../plugin/engine/core/project.mjs';
 
 const cli = fileURLToPath(new URL('../../plugin/engine/bin/wkd.mjs', import.meta.url));
-function fixture(t, flow = 7) {
+function fixture(t, flow = 8) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'wkd-flow-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const dir = path.join(root, 'films/future'), file = path.join(dir, '.wkd/state.json');
@@ -29,8 +29,8 @@ test('resume gives structured read-only flow diagnostics, never a rerun instruct
   const f = fixture(t), result = f.run(['resume', f.dir, '--json']);
   assert.equal(result.status, 1, result.stdout + result.stderr);
   const status = JSON.parse(result.stdout);
-  assert.equal(status.code, 'WKD_FLOW_TOO_NEW'); assert.equal(status.flow, 7);
-  assert.equal(status.supportedFlow, 6); assert.equal(status.stateFile, f.file); assert.equal(status.readonly, true);
+  assert.equal(status.code, 'WKD_FLOW_TOO_NEW'); assert.equal(status.flow, 8);
+  assert.equal(status.supportedFlow, 7); assert.equal(status.stateFile, f.file); assert.equal(status.readonly, true);
   assert.match(status.instruction, /升级/); assert.equal('next' in status, false); assert.equal('stages' in status, false);
   const plain = f.run(['resume', f.dir]);
   assert.equal(plain.status, 1); assert.match(plain.stdout, /WKD_FLOW_TOO_NEW.*升级/);

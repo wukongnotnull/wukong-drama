@@ -5,7 +5,7 @@ description: wukong-drama 动漫短剧风格：二维手绘卡通、清晰轮廓
 
 # 动漫短剧
 
-按 `../director/SKILL.md` 的 16 工序和 13 审片节点执行。先读 `STYLE.md` 的美术、动作与声音标准，再读 `TECH.md` 的提示词及参考图规范。
+按 `../director/SKILL.md` 的 14 工序和 11 审片节点执行。先读 `STYLE.md` 的美术、动作与声音标准，再读 `TECH.md` 的提示词及参考图规范。
 
 新片统一使用 generation 管线与 `shots/sNN.json`，用图片模型确立角色和场景，参考图审核后才调用视频模型。角色、服装、场景跨集引用确认版档案，模型一致性与口型仍需实际检查。
 

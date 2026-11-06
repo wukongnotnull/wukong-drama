@@ -21,18 +21,38 @@ function fixture(t) {
   return dir;
 }
 
-test('flow 5 delivery approval remains accepted after flow 6 progress migration without rewriting evidence',t=>{
+test('flow 5 delivery approval remains accepted after flow 7 progress migration without rewriting evidence',t=>{
   const dir=fixture(t),slot='16:9/video/mp4/clean',file=path.join(dir,'影片.mp4');
   const generation=final.captureFinalGeneration(dir,{slot});fs.writeFileSync(file,'actual video');
   final.recordFinalArtifact(dir,{generation,path:file,stage:'encode:mp4',technical:{status:'passed',errors:[]}});
-  const revision=final.finalDeliveryReport(dir).reviewSets[14].deliveryRevision;
-  const prepared=final.prepareFinalApproval(dir,{id:'pre-flow6',step:14,revision,source:'用户实际确认',note:'通过'});
-  fs.writeFileSync(path.join(dir,'.wkd/state.json'),JSON.stringify({flow:6,step:14,history:[{step:14,approvalId:'pre-flow6'}]}));
+  const revision=final.finalDeliveryReport(dir).reviewSets[12].deliveryRevision;
+  const prepared=final.prepareFinalApproval(dir,{id:'pre-flow6',step:12,revision,source:'用户实际确认',note:'通过'});
+  fs.writeFileSync(path.join(dir,'.wkd/state.json'),JSON.stringify({flow:7,step:12,history:[{step:12,approvalId:'pre-flow6'}]}));
   final.commitFinalApproval(dir,prepared);
   const ledgerFile=path.join(dir,'.wkd/final-delivery.json'),data=JSON.parse(fs.readFileSync(ledgerFile));
   data.approvals[0].step=13;delete data.approvals[0].flow;
   const before=JSON.stringify(data);fs.writeFileSync(ledgerFile,before);
   fs.writeFileSync(path.join(dir,'.wkd/state.json'),JSON.stringify({flow:5,step:13,history:[{step:13,approvalId:'pre-flow6'}]}));
+  assert.equal(final.finalDeliveryReport(dir).items[0].acceptance,'accepted');
+  readProgress(dir);
+  assert.equal(final.finalDeliveryReport(dir).items[0].acceptance,'accepted');
+  assert.equal(fs.readFileSync(ledgerFile,'utf8'),before);
+});
+
+test('flow 6 pending delivery proof keeps its original revision when recovered in flow 7',t=>{
+  const dir=fixture(t),slot='16:9/video/mp4/clean',file=path.join(dir,'影片.mp4');
+  const generation=final.captureFinalGeneration(dir,{slot});fs.writeFileSync(file,'actual video');
+  final.recordFinalArtifact(dir,{generation,path:file,stage:'encode:mp4',technical:{status:'passed',errors:[]}});
+  const current=final.finalDeliveryReport(dir).reviewSets[12];
+  const prepared=final.prepareFinalApproval(dir,{id:'old-pending',step:12,revision:current.deliveryRevision,source:'用户原始确认',note:'通过'});
+  prepared.approval.flow=6;prepared.approval.step=14;
+  prepared.approval.revision=digest({step:14,bindings:prepared.review.bindings});prepared.review.step=14;
+  const original=JSON.stringify(prepared.approval);
+  fs.writeFileSync(path.join(dir,'.wkd/state.json'),JSON.stringify({flow:6,step:14,history:[{step:14,approvalId:'old-pending',signature:'original'}]}));
+  fs.writeFileSync(path.join(dir,'.wkd/pending-approval.json'),JSON.stringify({id:'old-pending',step:14,status:'prepared',deliveryApproval:prepared}));
+  final.recordFinalEvidence(dir);
+  const ledgerFile=path.join(dir,'.wkd/final-delivery.json'),before=fs.readFileSync(ledgerFile,'utf8');
+  assert.equal(JSON.stringify(JSON.parse(before).approvals[0]),original);
   assert.equal(final.finalDeliveryReport(dir).items[0].acceptance,'accepted');
   readProgress(dir);
   assert.equal(final.finalDeliveryReport(dir).items[0].acceptance,'accepted');
@@ -108,14 +128,14 @@ test('A4/A5/A10 revision rejects mutations and manual draft approval preserves o
   assert.equal(typeof final.prepareFinalApproval,'function');
   const dir=fixture(t),draft=draftArtifact(dir),file=path.join(draft,'draft_content.json');
   const before=fs.readFileSync(path.join(draft,'.wkd-complete.json'));
-  const first=final.finalDeliveryReport(dir).reviewSets[16].deliveryRevision;
+  const first=final.finalDeliveryReport(dir).reviewSets[14].deliveryRevision;
   fs.writeFileSync(file,JSON.stringify({materials:{videos:[],audios:[]},tracks:[],name:'user edit'}));
-  assert.throws(()=>final.prepareFinalApproval(dir,{step:16,revision:first,source:'用户',note:'通过'}),/版本|变化/);
-  const revision=final.finalDeliveryReport(dir).reviewSets[16].deliveryRevision;
-  const args={id:'user-approval-15',step:16,revision,source:'用户本轮明确回复',note:'已保存并退出，草稿已打开检查',openEvidence:{status:'opened',source:'用户明确报告'}};
+  assert.throws(()=>final.prepareFinalApproval(dir,{step:14,revision:first,source:'用户',note:'通过'}),/版本|变化/);
+  const revision=final.finalDeliveryReport(dir).reviewSets[14].deliveryRevision;
+  const args={id:'user-approval-15',step:14,revision,source:'用户本轮明确回复',note:'已保存并退出，草稿已打开检查',openEvidence:{status:'opened',source:'用户明确报告'}};
   const approval=final.prepareFinalApproval(dir,args);
   // 模拟既有流程签批已持久化，不通过新模块伪造 state。
-  fs.writeFileSync(path.join(dir,'.wkd/state.json'),JSON.stringify({flow:6,step:16,history:[{step:16,approvalId:args.id,note:args.note}]}));
+  fs.writeFileSync(path.join(dir,'.wkd/state.json'),JSON.stringify({flow:7,step:14,history:[{step:14,approvalId:args.id,note:args.note}]}));
   final.commitFinalApproval(dir,approval);final.commitFinalApproval(dir,approval);
   let report=final.finalDeliveryReport(dir),item=report.items.find(i=>i.kind==='draft');
   assert.equal(item.acceptance,'accepted');assert.equal(item.openStatus,'opened');assert.equal(item.freshness,'current');
@@ -142,9 +162,9 @@ test('A5 native variant inherits only approved exact source, never claims native
   const proxy=path.join(dir,'review/小样-9x16.mp4');fs.writeFileSync(proxy,'proxy');
   const slot='9:16/source/proxy',projection={slot};
   final.recordFinalArtifact(dir,{generation:final.captureFinalGeneration(dir,{slot,fontFiles:[font],descriptor:{slot,aspect:'9:16',kind:'video',format:'mp4',flavor:'clean',projection,contractDigest:'source'}}),path:proxy,stage:'review:proxy',technical:{status:'passed',checks:['timing'],errors:[]}});
-  const revision=final.finalDeliveryReport(dir).reviewSets[15].deliveryRevision;
-  const prepared=final.prepareFinalApproval(dir,{id:'source-14',step:15,revision,source:'用户明确批准副版小样',note:'小样通过'});
-  fs.writeFileSync(path.join(dir,'.wkd/state.json'),JSON.stringify({flow:6,history:[{step:15,approvalId:'source-14'}]}));final.commitFinalApproval(dir,prepared);
+  const revision=final.finalDeliveryReport(dir).reviewSets[13].deliveryRevision;
+  const prepared=final.prepareFinalApproval(dir,{id:'source-14',step:13,revision,source:'用户明确批准副版小样',note:'小样通过'});
+  fs.writeFileSync(path.join(dir,'.wkd/state.json'),JSON.stringify({flow:7,history:[{step:13,approvalId:'source-14'}]}));final.commitFinalApproval(dir,prepared);
   const native=path.join(dir,'影片-9x16.mp4');fs.writeFileSync(native,'native');
   final.recordFinalArtifact(dir,{generation:final.captureFinalGeneration(dir,{slot:'9:16/video/mp4/clean',fontFiles:[font]}),path:native,stage:'encode:mp4',technical:{status:'passed',checks:['timing'],errors:[]}});
   let item=final.finalDeliveryReport(dir).items.find(i=>i.path===native);assert.equal(item.acceptance,'accepted');assert.equal(item.approval.type,'inherited');assert.equal(item.openStatus,'not-tested');
@@ -167,9 +187,9 @@ test('A10 identical successful export reuses evidence identity and record retrie
   const dir=fixture(t),file=path.join(dir,'影片.mp4'),font=path.join(dir,'font.ttf');fs.writeFileSync(font,'font');
   const save=()=>{const generation=final.captureFinalGeneration(dir,{slot:'16:9/video/mp4/clean',fontFiles:[font]});fs.writeFileSync(file,'same bytes');return final.recordFinalArtifact(dir,{generation,path:file,stage:'encode:mp4',technical:{status:'passed'}});};
   const first=save(),second=save();assert.equal(first.id,second.id);
-  const revision=final.finalDeliveryReport(dir).reviewSets[14].deliveryRevision;
-  const prepared=final.prepareFinalApproval(dir,{id:'same-13',step:14,revision,source:'用户',note:'通过'});
-  fs.writeFileSync(path.join(dir,'.wkd/state.json'),JSON.stringify({flow:6,history:[{step:14,approvalId:'same-13'}]}));final.commitFinalApproval(dir,prepared);
+  const revision=final.finalDeliveryReport(dir).reviewSets[12].deliveryRevision;
+  const prepared=final.prepareFinalApproval(dir,{id:'same-13',step:12,revision,source:'用户',note:'通过'});
+  fs.writeFileSync(path.join(dir,'.wkd/state.json'),JSON.stringify({flow:7,history:[{step:12,approvalId:'same-13'}]}));final.commitFinalApproval(dir,prepared);
   save();assert.equal(final.finalDeliveryReport(dir).items[0].acceptance,'accepted');
   final.recordFinalEvidence(dir);assert.equal(final.finalDeliveryReport(dir).items[0].acceptance,'accepted');
 });
@@ -197,8 +217,8 @@ test('A10 unstable scan and a running native editor reject approval',t=>{
   assert.throws(()=>final.deliverySnapshot(draft),/扫描期间/);t.mock.restoreAll();
   if(process.platform==='darwin') {
     process.env.WKD_JIANYING_PROCESS=path.basename(process.execPath);
-    const revision=final.finalDeliveryReport(dir).reviewSets[16].deliveryRevision;
-    assert.throws(()=>final.prepareFinalApproval(dir,{id:'running',step:16,revision,source:'用户',note:'通过'}),/仍在运行/);
+    const revision=final.finalDeliveryReport(dir).reviewSets[14].deliveryRevision;
+    assert.throws(()=>final.prepareFinalApproval(dir,{id:'running',step:14,revision,source:'用户',note:'通过'}),/仍在运行/);
   }
 });
 
@@ -215,9 +235,9 @@ test('deliverySnapshot keeps two independent complete passes with bounded file r
 
 test('A8 complete pending version proof can be recorded after state commit, never a vague note',t=>{
   const dir=fixture(t);draftArtifact(dir);
-  const revision=final.finalDeliveryReport(dir).reviewSets[16].deliveryRevision;
-  const prepared=final.prepareFinalApproval(dir,{id:'recover-15',step:16,revision,source:'用户本次明确验收',note:'通过'});
-  fs.writeFileSync(path.join(dir,'.wkd/state.json'),JSON.stringify({flow:6,history:[{step:16,approvalId:'recover-15'}]}));
+  const revision=final.finalDeliveryReport(dir).reviewSets[14].deliveryRevision;
+  const prepared=final.prepareFinalApproval(dir,{id:'recover-15',step:14,revision,source:'用户本次明确验收',note:'通过'});
+  fs.writeFileSync(path.join(dir,'.wkd/state.json'),JSON.stringify({flow:7,history:[{step:14,approvalId:'recover-15'}]}));
   fs.writeFileSync(path.join(dir,'.wkd/pending-approval.json'),JSON.stringify({id:'recover-15',deliveryApproval:prepared,status:'prepared'}));
   const state=fs.readFileSync(path.join(dir,'.wkd/state.json'));final.recordFinalEvidence(dir);
   assert.equal(final.finalDeliveryReport(dir).items.find(i=>i.kind==='draft').acceptance,'accepted');
@@ -237,7 +257,7 @@ test('A5 known current QC hard errors cannot be bypassed by a final approval not
   const source=qcSource(path.join(dir,'.cache'));
   rememberArtifacts(dir,{stage:'review:qc',aspect:'16:9',signature:source,outputs:[qc],value:qc});
   const report=final.finalDeliveryReport(dir);assert.equal(report.items[0].technical,'hard-error');assert.equal(report.status,'incomplete');
-  assert.throws(()=>final.prepareFinalApproval(dir,{id:'hard',step:14,revision:report.reviewSets[14].deliveryRevision,source:'用户',note:'通过'}),/技术错误/);
+  assert.throws(()=>final.prepareFinalApproval(dir,{id:'hard',step:12,revision:report.reviewSets[12].deliveryRevision,source:'用户',note:'通过'}),/技术错误/);
 });
 
 test('A6 word review annotations do not invalidate model pictures, while actual audio changes do',t=>{
@@ -269,11 +289,11 @@ test('A8 legacy external draft stays visible and a new explicit review can adopt
   const dir=fixture(t),draft=draftArtifact(dir);
   rememberArtifacts(dir,{stage:'draft-export',aspect:'16:9',signature:'legacy',outputs:[draft],value:draft});
   fs.rmSync(path.join(dir,'.wkd/final-delivery.json'));fs.rmSync(path.join(dir,'.wkd/final-delivery-receipts'),{recursive:true});
-  const state=path.join(dir,'.wkd/state.json');fs.writeFileSync(state,JSON.stringify({flow:6,history:[{step:16,approvalId:'old',note:'草稿通过'}]}));
+  const state=path.join(dir,'.wkd/state.json');fs.writeFileSync(state,JSON.stringify({flow:7,history:[{step:14,approvalId:'old',note:'草稿通过'}]}));
   let report=final.finalDeliveryReport(dir),item=report.items.find(i=>i.kind==='draft');
   assert.equal(item.path,draft);assert.equal(item.availability,'present');assert.equal(item.acceptance,'historical-only');assert.ok(item.link);
-  const prepared=final.prepareFinalApproval(dir,{id:'new-real-review',step:16,revision:report.reviewSets[16].deliveryRevision,source:'用户本次明确复核',note:'已保存退出，已打开检查当前历史草稿',openEvidence:{status:'opened',source:'用户实际打开反馈'}});
-  fs.writeFileSync(state,JSON.stringify({flow:6,history:[{step:16,approvalId:'old',note:'草稿通过'},{step:16,approvalId:'new-real-review'}]}));final.commitFinalApproval(dir,prepared);
+  const prepared=final.prepareFinalApproval(dir,{id:'new-real-review',step:14,revision:report.reviewSets[14].deliveryRevision,source:'用户本次明确复核',note:'已保存退出，已打开检查当前历史草稿',openEvidence:{status:'opened',source:'用户实际打开反馈'}});
+  fs.writeFileSync(state,JSON.stringify({flow:7,history:[{step:14,approvalId:'old',note:'草稿通过'},{step:14,approvalId:'new-real-review'}]}));final.commitFinalApproval(dir,prepared);
   report=final.finalDeliveryReport(dir);item=report.items.find(i=>i.kind==='draft');assert.equal(item.acceptance,'accepted');assert.equal(item.freshness,'current');
 });
 
@@ -281,8 +301,8 @@ test('A10 macOS cannot treat a failed process probe as an exited editor',t=>{
   if(process.platform!=='darwin')return;
   const dir=fixture(t);draftArtifact(dir);const previous=process.env.PATH;
   try {
-    process.env.PATH='/wkd-nonexistent-path';const revision=final.finalDeliveryReport(dir).reviewSets[16].deliveryRevision;
-    assert.throws(()=>final.prepareFinalApproval(dir,{id:'unknown-process',step:16,revision,source:'用户',note:'通过'}),/无法核实剪映进程/);
+    process.env.PATH='/wkd-nonexistent-path';const revision=final.finalDeliveryReport(dir).reviewSets[14].deliveryRevision;
+    assert.throws(()=>final.prepareFinalApproval(dir,{id:'unknown-process',step:14,revision,source:'用户',note:'通过'}),/无法核实剪映进程/);
   }finally{process.env.PATH=previous;}
 });
 

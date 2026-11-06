@@ -1,5 +1,5 @@
 // 实际字幕布局检查；未知画面内容与可读性始终保留人工待查。
-// 版式预检（layout）用于还没有小样的第 10 道：时间轴按 film.json 计算，只在纯色底上出样张。
+// 版式预检（layout）用于还没有小样的第 9 道：时间轴按 film.json 计算，只在纯色底上出样张。
 import {fileURLToPath} from 'node:url';
 import fs from 'node:fs';import path from 'node:path';import {spawnSync} from 'node:child_process';
 import {renderSubtitleLayers,subtitleStyle,prepareSubtitleFonts,subtitleFontSignature} from './subtitle-layer.mjs';
@@ -152,7 +152,7 @@ export async function preflightSubtitles(ctx,{proxy=true,video,subs=null,layout=
   const shots=ctx.shots.map((s,i)=>({...s,start:timing.shots[i].startFrame/timing.fps,duration:timing.shots[i].frames/timing.fps}));
   const geometry=checkSubtitleGeometry({subs,measurements:layers.measurements,W,H,requestedSize:layers.requestedSize,style,shots,regions});
   report={...report,...geometry,errors:[...check.errors,...geometry.errors],warnings:[...check.warnings,...geometry.warnings],measurements:layers.measurements};
-  if(layout) report.manual_required.push('还没有小样，未在实际画面上核对；第 11 道渲染小样后用 --preview 复查遮挡与可读性');
+  if(layout) report.manual_required.push('还没有小样，未在实际画面上核对；第 10 道渲染小样后用 --preview 复查遮挡与可读性');
   const actualVideo=layout?null:video || path.join(ctx.variant.cacheDir,proxy?'video-proxy.mp4':'video.mp4');
   report={...report,...await samples(ctx,{subs,W,H,video:actualVideo,layers,style,regions,proxy,layout})};
  } catch(e) {report.errors.push(e.message);}

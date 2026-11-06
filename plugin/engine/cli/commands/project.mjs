@@ -96,7 +96,7 @@ export function projectCommands({ pos, opt, log, aspectOpt }) {
         if (f.migrated) log(`  · 进度已按新流程（${LAST_STEP} 道工序）换算`);
         log(`  进度 ${f.step}/${LAST_STEP}${f.step ? ` 「${PRODUCTION_STEPS[f.step]}」` : ''}  →  下一步：${f.next ? `${f.next}. ${f.nextLabel}` : '已完成'}`);
         if (f.last) log(`  最近：${f.last.at.slice(0, 16).replace('T', ' ')}  ${f.last.note}`);
-        for (const a of f.staleVariants) log(`  ! ${a} 副版已过期：主版在第 14 道重新签批过，要重做第 15 道「改版」`);
+        for (const a of f.staleVariants) log(`  ! ${a} 副版已过期：主版在第 12 道重新签批过，要重做第 13 道「改版」`);
       }
       return exitCode;
     }

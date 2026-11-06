@@ -28,8 +28,8 @@ for(const pipeline of ['generation']) {
      assert.ok(!report.images.some(i=>i.kind==='实际画面'));assert.ok(report.manual_required.some(m=>/未在实际画面上核对/.test(m)));
      assert.equal(fs.existsSync(path.join(dir,'review','时间轴检查-proxy.json')),false,'没有小样时不写时间轴报告');
      const preview=cli('subtitles',dir,'--preview');assert.notEqual(preview.status,0);assert.match(preview.stderr,/还没有当前的小样/);
-     const subtitles=cli('signoff',dir,'字幕版式通过','--step','11');assert.equal(subtitles.status,0,subtitles.stderr);
-     const proxyGate=cli('signoff',dir,'小样通过','--step','12');assert.notEqual(proxyGate.status,0);assert.match(proxyGate.stderr,/小样/);
+     const subtitles=cli('signoff',dir,'字幕版式通过','--step','9');assert.equal(subtitles.status,0,subtitles.stderr);
+     const proxyGate=cli('signoff',dir,'小样通过','--step','10');assert.notEqual(proxyGate.status,0);assert.match(proxyGate.stderr,/小样/);
     }
     const render=cli('render',dir,'--proxy',...args);assert.equal(render.status,0,render.stderr);
     for(const bilingual of [false,true]) {
@@ -52,10 +52,10 @@ for(const pipeline of ['generation']) {
    const bad=cli('subtitles',dir,'--preview');assert.notEqual(bad.status,0);assert.match(bad.stderr,/分句拼接/);
    fs.rmSync(path.join(dir,'subtitle-layout.json'));
    const fixed=cli('subtitles',dir,'--preview');assert.equal(fixed.status,0,fixed.stderr);
-   const accepted=cli('signoff',dir,'字幕人工确认','--step','12');assert.equal(accepted.status,0,accepted.stderr);
+   const accepted=cli('signoff',dir,'字幕人工确认','--step','10');assert.equal(accepted.status,0,accepted.stderr);
    // 修改样式后，不得沿用旧预检签批。
    film.subtitles.style={bottom:0.2};fs.writeFileSync(filmFile,JSON.stringify(film));
-   const stale=cli('signoff',dir,'字幕确认','--step','12');assert.notEqual(stale.status,0);assert.match(stale.stderr,/过期/);
+   const stale=cli('signoff',dir,'字幕确认','--step','10');assert.notEqual(stale.status,0);assert.match(stale.stderr,/过期/);
    fs.rmSync(path.join(dir,'subtitles.en.json'));
    const missing=cli('subtitles',dir,'--preflight');assert.notEqual(missing.status,0);
    assert.equal(fs.existsSync(path.join(dir,'subtitles.en.json')),false,'预检不擅自创建英文稿');

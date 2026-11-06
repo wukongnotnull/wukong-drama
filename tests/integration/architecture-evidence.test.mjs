@@ -35,10 +35,10 @@ test('moving film loading does not allow old delivery evidence to survive implem
   const f = await fixture(t), moved = path.join(f.engine, 'core/film-context.mjs');
   assert.ok(fs.existsSync(moved), 'film loading has not yet been extracted');
   const first = f.save(); assert.equal(f.save().id, first.id, 'unchanged repeated generation keeps its identity');
-  const revision = f.final.finalDeliveryReport(f.film).reviewSets[14].deliveryRevision;
-  const approval = f.final.prepareFinalApproval(f.film, { id: 'approved', step: 14, revision, source: 'fixture explicit approval', note: 'approved' });
+  const revision = f.final.finalDeliveryReport(f.film).reviewSets[12].deliveryRevision;
+  const approval = f.final.prepareFinalApproval(f.film, { id: 'approved', step:12, revision, source: 'fixture explicit approval', note: 'approved' });
   const state = path.join(f.film, '.wkd/state.json');
-  fs.writeFileSync(state, JSON.stringify({ flow:6, history: [{ step: 14, approvalId: 'approved' }] }));
+  fs.writeFileSync(state, JSON.stringify({ flow:7, history: [{ step:12, approvalId: 'approved' }] }));
   f.final.commitFinalApproval(f.film, approval);
   assert.equal(f.final.finalDeliveryReport(f.film).items[0].acceptance, 'accepted');
   const ledger = path.join(f.film, '.wkd/final-delivery.json'), saved = fs.readFileSync(ledger), history = fs.readFileSync(state);

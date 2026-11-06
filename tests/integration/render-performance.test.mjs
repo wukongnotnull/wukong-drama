@@ -24,7 +24,7 @@ test('日常预览只更新选定或变化的镜头，复用原片段，不拼�
     assert.deepEqual(Object.keys(manifest()),['s01-proxy']);
     assert.equal(fs.existsSync(path.join(dir,'.cache/video-proxy.mp4')),false);
     assert.equal(fs.existsSync(path.join(dir,'.cache/timing-proxy.json')),false);
-    assert.notEqual(wkd('signoff',dir,'仅看过局部','--step','12').status,0,'局部预览不能代替完整小样验收');
+    assert.notEqual(wkd('signoff',dir,'仅看过局部','--step','10').status,0,'局部预览不能代替完整小样验收');
     assert.ok(fs.existsSync(path.join(dir,'review/局部小样/s01.mp4')));
     const first=manifest()['s01-proxy'];
     run('preview',dir);

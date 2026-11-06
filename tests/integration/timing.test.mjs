@@ -95,7 +95,7 @@ test('旧定稿帧长变化时，副版检查保留主版缓存与快照', {time
   const dir = film('generation');
   try {
     assert.equal(cli('render',dir).status,0);
-    const signed = cli('signoff',dir,'主版确认','--step','14');
+    const signed = cli('signoff',dir,'主版确认','--step','12');
     assert.equal(signed.status,0,signed.stderr);
     const manifest = fs.readFileSync(path.join(dir,'.cache','manifest.json'));
     const snapshot = fs.readFileSync(path.join(dir,'.cache','approved','s01.mp4'));
@@ -165,7 +165,7 @@ test('零帧镜头和小数fps拒绝，不改工程或启动渲染', () => {
 test('没有时间轴证据不能记录成片终审签批', () => {
   const dir=film('generation');
   try {
-    const r=cli('signoff',dir,'未经渲染的终审','--step','14');
+    const r=cli('signoff',dir,'未经渲染的终审','--step','12');
     assert.notEqual(r.status,0);
     assert.match(r.stderr,/时间轴未验证/);
     assert.equal(fs.existsSync(path.join(dir,'.wkd','state.json')),false);

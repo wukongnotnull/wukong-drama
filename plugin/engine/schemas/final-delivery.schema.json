@@ -238,6 +238,7 @@
           "step": {
             "type": "integer",
             "enum": [
+              12,
               13,
               14,
               15,
@@ -331,7 +332,7 @@
           "flow": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 6
+            "maximum": 7
           }
         }
       }

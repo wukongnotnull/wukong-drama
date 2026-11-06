@@ -4,12 +4,22 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PRODUCTION_STEPS, REVIEW_GATES, LAST_STEP } from '../../plugin/engine/core/state.mjs';
+import { PRODUCTION_STEPS, REVIEW_GATES, LAST_STEP, FLOW_VERSION } from '../../plugin/engine/core/state.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const SKILL = fs.readFileSync(path.join(ROOT, 'plugin/skills/director/SKILL.md'), 'utf8');
 const cells = (line) => line.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
 const squash = (s) => s.replace(/\s+/g, '');
+
+test('默认声音随视频审查，独立配音按需启用', () => {
+  assert.equal(LAST_STEP,14);
+  assert.equal(PRODUCTION_STEPS[7],'风格帧与动态分镜');
+  assert.equal(PRODUCTION_STEPS[8],'镜头制作');
+  assert.equal(REVIEW_GATES[10],'⑧小样');
+  assert.doesNotMatch(SKILL,/### 第 \d+ 道 · (人声素材来源|声轨制作)/);
+  assert.match(SKILL,/按需声音处理/);
+  assert.match(SKILL,/小样[\s\S]*对白、配乐、音效/);
+});
 
 /** 表头第一格为 first 的表的各行 */
 function rows(first) {
@@ -22,7 +32,18 @@ function rows(first) {
 }
 
 test('标题写明工序数和审片节点数', () => {
+  assert.match(SKILL, new RegExp(`drama flow ${FLOW_VERSION}\\*\\*（${LAST_STEP} 工序 / ${Object.keys(REVIEW_GATES).length} 审片节点）`));
   assert.match(SKILL, new RegExp(`## 四、制作流程：${LAST_STEP} 道工序、${Object.keys(REVIEW_GATES).length} 个审片节点`));
+});
+
+test('交付审阅摘要与签批命令使用同一节点编号', () => {
+  for (const [step,next] of [[12,13],[13,14],[14,null]]) {
+    const start=SKILL.indexOf(`### 第 ${step} 道 · `);
+    const end=next?SKILL.indexOf(`### 第 ${next} 道 · `):SKILL.indexOf('## 五、');
+    const section=SKILL.slice(start,end);
+    assert.match(section,new RegExp(`reviewSets\\[${step}\\]\\.deliveryRevision`));
+    assert.match(section,new RegExp(`--step ${step} --delivery-revision`));
+  }
 });
 
 test('工序总表逐道对应引擎的工序，审片节点与 --step 一致', () => {

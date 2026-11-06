@@ -22,7 +22,7 @@ test('plugin identities and model-drama metadata agree across host manifests', (
   const portable = json('plugin/plugin.json');
   const codex = json('plugin/.codex-plugin/plugin.json');
   const claude = json('plugin/.claude-plugin/plugin.json');
-  assert.equal(portable.version, '0.1.0');
+  assert.equal(portable.version, '0.2.0');
   for (const manifest of [portable, codex, claude]) {
     assert.equal(manifest.name, 'wukong-drama');
     assert.equal(manifest.version, portable.version);

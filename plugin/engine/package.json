@@ -1,6 +1,6 @@
 {
   "name": "wukong-drama-engine",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "wukong-drama 短剧引擎：模型生成管线、声音字幕与交付导出",
   "type": "module",
   "private": true,

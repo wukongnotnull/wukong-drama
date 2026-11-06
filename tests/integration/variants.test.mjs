@@ -152,10 +152,10 @@ const report = (dir) => fs.readFileSync(path.join(dir, 'review', '主版不变�
 const rowOf = (text, id) => text.split('\n').find((l) => l.startsWith(`| ${id} `)) || '';
 const state = (dir) => JSON.parse(fs.readFileSync(path.join(dir, '.wkd', 'state.json'), 'utf8'));
 
-test('signing off step 13 snapshots the main version; variant renders report whether it changed', opts, () => {
+test('signing off step 12 snapshots the main version; variant renders report whether it changed', opts, () => {
   const dir = makeFilm();
   ok(wkd('render', dir));
-  ok(wkd('signoff', dir, '成片终审通过', '--step', '14'));
+  ok(wkd('signoff', dir, '成片终审通过', '--step', '12'));
   assert.deepEqual(Object.keys(state(dir).approved.main), ['s01', 's02']);
   assert.deepEqual(fs.readdirSync(path.join(dir, '.cache', 'approved')).sort(), ['s01.mp4', 's02.mp4']);
 
@@ -185,17 +185,17 @@ test('signing off step 13 snapshots the main version; variant renders report whe
 test('a variant signed off before the main version changed is stale: final refuses it, status says so', opts, () => {
   const dir = makeFilm();
   ok(wkd('render', dir));
-  ok(wkd('signoff', dir, '终审通过', '--step', '14'));
+  ok(wkd('signoff', dir, '终审通过', '--step', '12'));
   ok(wkd('render', dir, '--aspect', '9:16', '--proxy'));
-  ok(wkd('signoff', dir, '副版通过', '--step', '15'));
+  ok(wkd('signoff', dir, '副版通过', '--step', '13'));
   assert.ok(state(dir).approved.variants['9:16'].shots.s01);
 
   writeModelShot(path.join(dir, 'shots', 's01.json'), SHOT(FILL('#000000')));
   ok(wkd('render', dir));
-  ok(wkd('signoff', dir, '返修后终审通过', '--step', '14'));
+  ok(wkd('signoff', dir, '返修后终审通过', '--step', '12'));
   const r = wkd('final', dir, '--aspect', '9:16', '--proxy');
   assert.notEqual(r.status, 0);
-  assert.match(r.stderr + r.stdout, /第 14 道/);
+  assert.match(r.stderr + r.stdout, /第 12 道/);
 
   const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'wkd-variants-project-'));
   fs.mkdirSync(path.join(projectDir, 'films'));
