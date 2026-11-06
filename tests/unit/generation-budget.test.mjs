@@ -42,7 +42,8 @@ test('approval binds input bytes and cannot be reused after prompt changes', asy
   const f=fixture(t);
   await assert.rejects(generation.ensureImage(f.job,f.shot,{api:f.api}),/授权/);
   generation.approveGeneration(f.job,'image',{source:'explicit user permission'});
-  fs.writeFileSync(f.shot.path,JSON.stringify({image_prompt:'different cat',video_prompt:'cat runs'}));
+  const board=path.join(f.dir,'storyboard.md');fs.writeFileSync(board,fs.readFileSync(board,'utf8').replace('cat','different cat'));
+  approveFixtureContent(f.job); // Content approval must not replace the batch fee authorization.
   await assert.rejects(generation.ensureImage(f.job,f.shot,{api:f.api}),/授权/);
   assert.equal(f.counts.image,0);
 });
@@ -57,7 +58,8 @@ test('cumulative task ceiling survives a new revision and a fresh approval', asy
   approveFixtureFrames(f.job);
   generation.approveGeneration(f.job,'video',{source:'video approved'});
   await generation.ensureVideo(f.job,f.shot,{api:f.api});
-  fs.writeFileSync(f.shot.path,JSON.stringify({image_prompt:'cat',video_prompt:'cat jumps'}));
+  const board=path.join(f.dir,'storyboard.md');fs.writeFileSync(board,fs.readFileSync(board,'utf8').replace('cat runs','cat jumps'));
+  approveFixtureContent(f.job);
   const plan=generation.generationPlan(f.job,'video');
   assert.equal(plan.allowed,false);assert.match(plan.problems.join(' '),/任务上限/);
   assert.throws(()=>generation.approveGeneration(f.job,'video',{source:'retry'}),/任务上限/);
@@ -99,7 +101,7 @@ test('invalid image quality or reference fails locally before reserving a reques
   assert.equal(generation.generationPlan(f.job,'image').reservedCost,0);
   delete f.job.film.generation.image.quality;
   fs.writeFileSync(path.join(f.dir,'invalid.png'),'not a PNG');
-  fs.writeFileSync(f.shot.path,JSON.stringify({image_prompt:'cat',video_prompt:'cat runs',references:['invalid.png']}));
+  fs.writeFileSync(f.shot.path,JSON.stringify({...JSON.parse(fs.readFileSync(f.shot.path)),references:['invalid.png']}));
   generation.approveGeneration(f.job,'image',{source:'reference approved'});
   await assert.rejects(generation.ensureImage(f.job,f.shot,{env}),/PNG|图片/);
   assert.equal(generation.generationPlan(f.job,'image').reservedCost,0);assert.equal(calls,0);

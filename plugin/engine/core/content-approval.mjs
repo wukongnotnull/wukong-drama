@@ -4,6 +4,7 @@ import path from 'node:path';
 import {digest,fileDigest,readJson,atomicJson} from './evidence.mjs';
 import {assertCompatibleProgress} from './state.mjs';
 import {aspectOf} from './variants.mjs';
+import {storyboardPrompts} from '../generation/storyboard-prompts.mjs';
 
 const fileOf=job=>path.join(job.filmDir,'.wkd/content-approvals.json');
 function text(job,name){
@@ -32,13 +33,18 @@ export function contentSnapshot(job,step,{frames={}}={}){
     const rows=lines.filter(line=>rowId(line)===shot.id);
     if(!rows.length)throw new Error(`内容审查缺少 ${shot.id} 的分镜表行`);
     const {id,duration,size,note,transition}=shot;
-    const storyboard=digest({story,shared,shot:{id,duration,size,note,transition},rows});
+    const mainPrompts=storyboardPrompts({...job,variant:{...job.variant,isMain:true}},shot);
+    const common=mainPrompts?lines.filter(line=>!rowId(line)&&!mainPrompts.soundRows.includes(line)).join('\n').trim():shared;
+    const storyboard=digest({story,shared:common,shot:{id,duration,size,note,transition},rows,...(mainPrompts?{prompt:mainPrompts.video}:{})});
     if(step===6)return {id,signature:storyboard};
     const frame=frames[id];
     if(!frame?.file||!fs.existsSync(frame.file))throw new Error(`${id} 缺少实际分镜图，不能签批图片`);
     const image={path:path.relative(job.filmDir,frame.file),sha256:fileDigest(frame.file),role:frame.role||null,initialState:frame.initialState||null};
     const reformat=job.variant?.isMain===false&&reformatAt>=0?allLines.slice(reformatAt).filter(line=>rowId(line)===id):[];
-    return {id,storyboard,image,signature:digest({storyboard,image,reformat})};
+    const prompts=storyboardPrompts(job,shot);
+    // Main motion/tail/sound reuse the first-frame review; variant composition needs its own approval.
+    const material=prompts?{story,image,id,size,firstFrame:prompts.image,...(job.variant?.isMain===false?{tailComposition:prompts.fields.last_frame_prompt}:{})}:{storyboard,image,reformat};
+    return {id,storyboard,image,signature:digest(material)};
   });
   const value={step,aspect,story,shots};return {...value,signature:digest(value)};
 }
@@ -60,6 +66,6 @@ export function requireContentApproval(job,review){
   }
   for(const shot of review.shots){
     const last=history.filter(a=>a.review?.step===review.step&&a.review.aspect===review.aspect&&a.review.shots?.some(s=>s.id===shot.id)).at(-1);
-    if(last?.review.shots.find(s=>s.id===shot.id)?.signature!==shot.signature)throw new Error(`${shot.id} ${review.step===6?'分镜':'分镜图／动作初态'}内容尚未批准或已变化；请补审第${review.step}道，不会自动重新生成`);
+    if(last?.review.shots.find(s=>s.id===shot.id)?.signature!==shot.signature)throw new Error(`${shot.id} ${review.step===6?'分镜':'分镜图／动作初态／副版构图'}内容尚未批准或已变化；请补审第${review.step}道，不会自动重新生成`);
   }
 }

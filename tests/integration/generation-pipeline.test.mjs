@@ -127,6 +127,7 @@ test('selected still generation uses the same local batch that was approved',asy
   const bytes=fs.readFileSync(image),second={...f.shot,id:'s02',path:path.join(f.dir,'second.json')};
   fs.writeFileSync(second.path,JSON.stringify({image_prompt:'solid blue',settings:[]}));
   f.job.shots.push(second);f.job.film.generation.image={model:'test',estimated_cost_usd:0.1,api_key_env:'WKD_SETTINGS_PIPELINE_TEST_KEY'};
+  f.job.film.generation.video={model:'test',generate_audio:false,api_key_env:'WKD_SETTINGS_PIPELINE_TEST_KEY'};
   f.job.film.generation.budget={image_usd:1,max_image_tasks:2};approveEmptySettings(f.dir,'anime');
   approveFixtureContent(f.job);
   approveGeneration({...f.job,shots:[second]},'image',{source:'测试只批准 s02 图片'});

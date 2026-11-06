@@ -136,7 +136,7 @@ test('approved setting text and snapshots reach host; changed settings block new
  const f=await fixture(t),a=await api(),ref={kind:'character',id:'hero',version:'v1'};
  saveSettingVersion(f.root,{...ref,name:'Hero',description:'blue coat, green eyes',references:['films/demo/assets/ref.png']});
  fs.writeFileSync(path.join(f.dir,'settings.json'),JSON.stringify({version:1,categories:{characters:{status:'used'},props:{status:'not-applicable',reason:'none'},scenes:{status:'not-applicable',reason:'none'}},selections:[ref]}));
- fs.writeFileSync(f.job.shots[0].path,JSON.stringify({image_prompt:'portrait',settings:[ref]}));
+ fs.writeFileSync(f.job.shots[0].path,JSON.stringify({...JSON.parse(fs.readFileSync(f.job.shots[0].path)),settings:[ref]}));
  assert.throws(()=>a.imageBatchPlan(f.job,{host}),/设定/);
  approveSettings(f.dir,{expectedSignature:settingsReview(f.dir).signature,source:'user approved visual settings'});
  const p=a.imageBatchPlan(f.job,{host});a.approveImageBatch(f.job,{host,method:'host',signature:p.routes.host.signature,source:'host batch'});

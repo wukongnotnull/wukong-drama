@@ -61,4 +61,4 @@
 
 可选 `series` 引用项目路径、`episode_id` 与 `character_ids`。角色、道具、场景版本在项目设定库中维护；第 5 道按 `SETTINGS.md` 确认，本片 `settings.json` 选择版本，镜头 `settings` 自动带入文字与参考快照，额外构图图像才列入 `references`。正式连续性独立于草稿，只有明确确认的当前稿才入 canon。
 
-默认 `generation.video.generate_audio: true`，省略时也开启；保留并提取模型原生音轨进入后期。用户选择无声画面或独立后期时显式设为 `false`，旧工程已有的 `false` 不变。原生声音是一条混合音轨，不能承诺自动拆分。`audio.voice_source` 仅管理额外独立人声；全片无人声还要在 `video_prompt` 明确禁止对白和旁白。真实视频未产出前只确认方向，实际生成后再审听，不填写虚假的提前通过记录。
+默认 `generation.video.generate_audio: true`，省略时也开启；保留并提取模型原生音轨进入后期。用户选择无声画面或独立后期时显式设为 `false`，旧工程已有的 `false` 不变。原生声音是一条混合音轨，不能承诺自动拆分。`audio.voice_source` 仅管理额外独立人声；全片无人声时分镜人声栏写“—”，自动指令会禁止对白和旁白。真实视频未产出前只确认方向，实际生成后再审听，不填写虚假的提前通过记录。

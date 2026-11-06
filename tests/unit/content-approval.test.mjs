@@ -17,8 +17,8 @@ async function fixture(t){
  film.generation.video={provider:'seedance',model:'doubao-seedance-2-0-test',estimated_cost_cny:1};film.generation.budget={video_cny:10,max_video_tasks:10};
  fs.writeFileSync(file,JSON.stringify(film));approveEmptySettings(dir);
  fs.writeFileSync(path.join(dir,'story.md'),'# 猫偷蛋\n猫伸爪，随后抬头。');
- fs.writeFileSync(path.join(dir,'storyboard.md'),'| s01 | 伸爪 |\n| s02 | 抬头 |\n');
- for(const s of film.shots){fs.writeFileSync(path.join(dir,s.id+'.png'),'reviewed picture '+s.id);fs.writeFileSync(path.join(dir,s.file),JSON.stringify({image:s.id+'.png',image_role:'first_frame',initial_state:'动作开始前',video_prompt:'猫伸爪'}));}
+ fs.writeFileSync(path.join(dir,'storyboard.md'),'| 镜 | 时长 | 首帧提示词 | 过渡提示词 | 尾帧提示词 |\n|---|---|---|---|---|\n| s01 | 1s | 猫爪尚未移动 | 伸爪 | 猫爪伸出 |\n| s02 | 1s | 猫低头 | 抬头 | 猫抬头 |\n');
+ for(const s of film.shots){fs.writeFileSync(path.join(dir,s.id+'.png'),'reviewed picture '+s.id);fs.writeFileSync(path.join(dir,s.file),JSON.stringify({image:s.id+'.png',image_role:'first_frame',initial_state:'动作开始前'}));}
  const run=async(...args)=>{lines.length=0;const code=await runCli(args,io);return {code,text:lines.join('\n')};};
  const sign=async(step,only=null)=>{
    const args=[dir,'--step',String(step),...(only?['--only',only]:[])];
@@ -70,7 +70,7 @@ test('changed storyboard rows do not invalidate unrelated shot content',async t=
 test('reformatting preserves main storyboard approval and only the new frame needs review',async t=>{
  const f=await fixture(t);for(const n of [4,6,7])await f.sign(n);
  const filmFile=path.join(f.dir,'film.json'),film=JSON.parse(fs.readFileSync(filmFile));film.variants={'9:16':{}};fs.writeFileSync(filmFile,JSON.stringify(film));
- fs.appendFileSync(path.join(f.dir,'storyboard.md'),'\n## 副版重排（9:16）\n| s01 | 猫置于中线 |\n| s02 | 留出顶部 |\n');
+ fs.appendFileSync(path.join(f.dir,'storyboard.md'),'\n## 副版重排（9:16）\n| 镜 | 首帧提示词 | 尾帧提示词 |\n|---|---|---|\n| s01 | 竖屏猫爪尚未移动 | 竖屏猫爪伸出 |\n| s02 | 竖屏猫低头 | 竖屏猫抬头 |\n');
  assert.equal(generationPlan(f.job(),'video').allowed,true,'副版表不会使主版分镜失效');
  const p=await f.run('content-review',f.dir,'--step','7','--aspect','9:16');assert.equal(p.code,0,p.text);
  const signed=await f.run('signoff',f.dir,'用户确认副版首帧','--step','7','--aspect','9:16','--content-signature',JSON.parse(p.text).signature);assert.equal(signed.code,0,signed.text);

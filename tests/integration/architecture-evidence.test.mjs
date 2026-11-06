@@ -67,7 +67,7 @@ for (const relative of ['core/qc-config.mjs', 'core/qc-source.mjs']) test(`QC an
   assert.ok(f.final.finalDeliveryReport(f.film).items[0].technicalEvidence.qc, 'fresh QC is recognized again');
 });
 
-for(const relative of ['generation/generation.mjs','generation/image-source.mjs','generation/generation-budget.mjs'])test(`real implementation ${relative} invalidates final evidence without rewriting history`,async t=>{
+for(const relative of ['generation/generation.mjs','generation/image-source.mjs','generation/generation-budget.mjs','generation/storyboard-prompts.mjs'])test(`real implementation ${relative} invalidates final evidence without rewriting history`,async t=>{
  const f=await fixture(t),file=path.join(f.engine,relative);assert.ok(fs.existsSync(file));
  f.save();const ledger=path.join(f.film,'.wkd/final-delivery.json'),before=fs.readFileSync(ledger);
  fs.appendFileSync(file,'\n// real domain implementation edited\n');

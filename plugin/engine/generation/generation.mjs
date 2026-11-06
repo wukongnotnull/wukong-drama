@@ -9,6 +9,7 @@ import { imageRoute, saveImageRoutes, hostConfig, validateHostRequest } from './
 import { imageMime, atomicWrite } from '../providers/media.mjs';
 import { run as ffmpeg } from '../core/ffmpeg.mjs';
 import {contentSnapshot,requireContentApproval} from '../core/content-approval.mjs';
+import {storyboardPrompts,requireStoryboardPrompts,promptColumns} from './storyboard-prompts.mjs';
 
 function localFile(dir, relative) {
   if (typeof relative !== 'string' || !relative || path.isAbsolute(relative)) throw new Error('素材必须使用片目录内的相对路径');
@@ -24,17 +25,20 @@ function readShot(job, shot) {
   try { value = job.imageStage ? shot.definition : JSON.parse(fs.readFileSync(localFile(job.filmDir, shot.path ? path.relative(job.filmDir,shot.path) : shot.file), 'utf8')); }
   catch { throw new Error(`镜头 ${shot.id} 必须是有效的 JSON 模型镜头`); }
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`镜头 ${shot.id} 描述无效`);
-  const keys = ['image_prompt','video_prompt','references','image','video','revision','settings','source_start','image_role','initial_state'];
+  const keys = ['image_prompt','video_prompt','references','image','video','revision','settings','source_start','image_role','initial_state',...Object.keys(promptColumns)];
   if (Object.keys(value).some(x => !keys.includes(x))) throw new Error(`镜头 ${shot.id} 含未知字段`);
-  for (const key of ['image_prompt','video_prompt','image','video','revision']) if (value[key] !== undefined && (typeof value[key] !== 'string' || !value[key].trim())) throw new Error(`镜头 ${shot.id} 的 ${key} 必须是非空字符串`);
+  for (const key of ['image_prompt','video_prompt','image','video','revision',...Object.keys(promptColumns)]) if (value[key] !== undefined && (typeof value[key] !== 'string' || !value[key].trim())) throw new Error(`镜头 ${shot.id} 的 ${key} 必须是非空字符串`);
   if(value.source_start!==undefined&&(!Number.isFinite(value.source_start)||value.source_start<0))throw new Error(`${shot.id} source_start 必须是非负秒数`);
   if(value.image_role!==undefined&&!['representative','first_frame'].includes(value.image_role))throw new Error(`${shot.id} image_role 必须是 representative 或 first_frame`);
   if(value.initial_state!==undefined&&(typeof value.initial_state!=='string'||!value.initial_state.trim()))throw new Error(`${shot.id} initial_state 必须描述动作初态`);
   if (value.references !== undefined && (!Array.isArray(value.references) || value.references.length > 16)) throw new Error('references 必须为最多 16 项的本地参考图列表');
+  const prompts=storyboardPrompts(job,shot);
+  const promptConflicts=prompts?['image_prompt','video_prompt'].filter(key=>value[key]!==undefined&&value[key]!==prompts[key==='image_prompt'?'image':'video']):[];
+  if(prompts)value={...value,image_prompt:prompts.image,video_prompt:prompts.video};
   const settings=['art','settings'].includes(job.imageStage)&&value.settings===undefined?{bindings:[],references:[],prompt:''}:resolveShotSettings(job,value);
   const references=[...new Set([...(value.references||[]).map(x=>localFile(job.filmDir,x)),...settings.references])];
   if(references.length>16)throw new Error('镜头与设定合计参考图超过 16 张，请精选必要视图');
-  return { ...value, ...Object.fromEntries(['image_prompt','video_prompt'].filter(k=>value[k]&&settings.prompt).map(k=>[k,value[k]+'\n\n'+settings.prompt])), settings:settings.bindings, references, image: value.image && localFile(job.filmDir, value.image), video: value.video && localFile(job.filmDir, value.video) };
+  return { ...value, promptConflicts, ...Object.fromEntries(['image_prompt','video_prompt'].filter(k=>value[k]&&settings.prompt).map(k=>[k,value[k]+'\n\n'+settings.prompt])), settings:settings.bindings, references, image: value.image && localFile(job.filmDir, value.image), video: value.video && localFile(job.filmDir, value.video) };
 }
 function configFor(job, kind) { return providers.resolveProvider(kind, job.film.generation?.[kind] || {}); }
 function semanticConfig(config) {
@@ -98,6 +102,7 @@ export function contentReview(job,step){
 }
 function requireContent(job,shot,kind,definition){
   if(job.imageStage)return;
+  requireStoryboardPrompts(job,shot,definition);
   const selected={...job,shots:[shot],generationShots:null};
   requireContentApproval(selected,contentReview(selected,4));
   requireContentApproval(selected,contentReview(selected,6));

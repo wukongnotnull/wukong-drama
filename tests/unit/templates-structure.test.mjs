@@ -66,8 +66,15 @@ function entries(src) {
   return ['基本信息', ...s.filter((x) => x.startsWith('## ')).map((x) => x.slice(3))];
 }
 
-/** 分镜末尾的「副版重排」表是第 15 道改版时才加的（STORYBOARD.md「六、副版重排」），不属于模板骨架。 */
+/** 分镜末尾的「副版重排」表是第 13 道改版时才加的（STORYBOARD.md「六、副版重排」），不属于模板骨架。 */
 const withoutVariantAppendix = (src) => src.split(/^## 副版重排/m)[0];
+
+// These accepted films predate the three prompt columns; preserve their original records.
+const historicalBoards=new Set([
+  'plugin/skills/ink-wash/examples/demo/storyboard.md',
+  'plugin/skills/cinematic/examples/stealing-kitten/storyboard.md',
+]);
+const historicalStructure=src=>structure(src).map(line=>line.startsWith('| 镜 |')?line.replace(/ \| (首帧提示词|过渡提示词|尾帧提示词)/g,''):line);
 
 const examples = (base) => {
   const skills = path.join(PLUGIN, 'skills');
@@ -107,7 +114,8 @@ for (const t of TEMPLATES) {
 
   for (const ex of examples(base)) {
     test(`${rel(ex)} 的结构与模板一致`, () => {
-      assert.deepEqual(structure(withoutVariantAppendix(read(ex))), structure(src));
+      const expected=historicalBoards.has(rel(ex))?historicalStructure(src):structure(src);
+      assert.deepEqual(structure(withoutVariantAppendix(read(ex))),expected);
     });
   }
 }

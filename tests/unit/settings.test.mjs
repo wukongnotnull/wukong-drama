@@ -30,7 +30,7 @@ async function configured(t) {
   api.saveSettingVersion(f.root,{...ref,name:'主角',description:'短发蓝衣，禁止改变眼睛颜色',state:'base',importance:'key',references:['assets/hero.png']});
   const manifest={version:1,categories:{characters:{status:'used'},props:{status:'not-applicable',reason:'没有道具'},scenes:{status:'not-applicable',reason:'纯色背景'}},selections:[ref]};
   write(path.join(f.dir,'settings.json'),manifest);
-  write(f.job.shots[0].path,{image_prompt:'镜头构图',video_prompt:'缓慢走动',settings:[ref]});
+  write(f.job.shots[0].path,{...JSON.parse(fs.readFileSync(f.job.shots[0].path)),settings:[ref]});
   return {...f,api,manifest};
 }
 function approve(f) {
@@ -165,6 +165,7 @@ test('review rejects missing category reasons and image symlinks outside project
 test('setting descriptions do not invent a missing composition or motion prompt',async t=>{
   const f=await configured(t);approve(f);
   write(f.job.shots[0].path,{settings:[ref]});
+  const board=path.join(f.dir,'storyboard.md');fs.writeFileSync(board,fs.readFileSync(board,'utf8').replace('镜头构图','—'));
   const plan=generationPlan({...f.job,shots:[f.job.shots[0]]});
   assert.equal(plan.allowed,false);assert.match(plan.problems.join(' '),/缺少 image 提示词/);
   assert.equal(plan.items[0].input.prompt,'');
