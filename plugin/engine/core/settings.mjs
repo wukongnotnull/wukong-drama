@@ -101,6 +101,7 @@ function describe(root,ref,style) {
   if(!Array.isArray(references)||references.length>16)throw new Error('设定参考图列表无效');
   const importance=value.importance||'key';
   if(!['key','minor'].includes(importance))throw new Error('设定重要性无效');
+  if(ref.kind==='character'&&references.length!==1)throw new Error(`角色 ${ref.id} 需要一张参考图，图中包含正面、侧面、背面、表情和动作参考`);
   if(importance==='key'&&!references.length)throw new Error(`重点${labels[ref.kind]} ${ref.id} 缺少参考图`);
   const images=references.map(relative=>{const file=localReference(root,relative);return {path:relative,sha256:fileDigest(file)};});
   const content={ref:{kind:ref.kind,id:ref.id,version:ref.version},style,name:value.name,description,state:value.state||'base',importance,voice:value.voice||'',notes:value.notes||'',references:images};
@@ -139,6 +140,7 @@ export function settingsReview(filmDir,{write=false}={}) {
     for(const [kind,plural] of Object.entries(kinds))lines.push(`- ${labels[kind]}：${result.categories?.[plural]?.status||'待检查'} ${result.categories?.[plural]?.reason||''}`);
     for(const item of items) {
       lines.push('',`## ${labels[item.ref.kind]}：${item.name}（${item.ref.version} / ${item.state}）`,`${item.status==='reused'?'沿用已确认':item.status==='changed'?'变化待复审':'新增待审'} · ${item.importance==='key'?'重点':'简化'}`,'',item.description,item.notes);
+      if(item.ref.kind==='character')lines.push('','请实际看图确认：正面、侧面、背面、表情和动作参考均在同一张图中，造型、服装、配色与比例一致；文件数量检查不能代替审图。');
       for(const ref of item.references)lines.push('',`![${item.name}](${path.join(root,ref.path)})`);
     }
     if(problems.length)lines.push('','## 待补齐',...problems.map(x=>'- '+x));

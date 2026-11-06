@@ -46,7 +46,7 @@ test('14 steps include settings before storyboard; migration preserves proof wit
   assert.equal(state.history[0].signature,'original');assert.equal(state.history.some(h=>h.step===5),false);
   assert.equal(old.step,8);
 });
-test('inventory is mandatory, cannot overwrite, and key objects require references while minor ones can be text only',async t=>{
+test('inventory is mandatory, cannot overwrite, and key objects require references while minor props can be text only',async t=>{
   const api=await settings(),f=fixture(t);api.initSettings(f.dir);
   assert.throws(()=>api.initSettings(f.dir),/已存在/);
   assert.equal(api.settingsReview(f.dir).ready,false);
@@ -57,6 +57,24 @@ test('inventory is mandatory, cannot overwrite, and key objects require referenc
   const minor={kind:'prop',id:'cup',version:'v1'};
   api.saveSettingVersion(f.root,{...minor,name:'背景杯',description:'白色杯子',importance:'minor'});
   assert.throws(()=>api.saveSettingVersion(f.root,{kind:'scene',id:'room',version:'v1',name:'房间',description:'明亮',references:['../outside.png']}),/参考图|项目/);
+});
+
+test('every new character needs exactly one reference sheet, including minor characters',async t=>{
+  const f=fixture(t);settingsApi.initSettings(f.dir);
+  const manifest={version:1,categories:{characters:{status:'used'},props:{status:'not-applicable',reason:'无'},scenes:{status:'not-applicable',reason:'无'}},selections:[]};
+  fs.writeFileSync(path.join(f.root,'assets/side.png'),'reference B');
+  for(const [id,references] of [['missing',[]],['multiple',['assets/hero.png','assets/side.png']],['complete',['assets/hero.png']]]){
+    const ref={kind:'character',id,version:'v1'};
+    settingsApi.saveSettingVersion(f.root,{...ref,name:id,description:'角色全身造型',importance:'minor',references});
+    write(path.join(f.dir,'settings.json'),{...manifest,selections:[ref]});
+    const review=settingsApi.settingsReview(f.dir,{write:true});
+    assert.equal(review.ready,id==='complete');
+    if(id!=='complete')assert.match(review.problems.join(' '),/角色.*一张|角色.*1.*参考/);
+    else {
+      assert.match(fs.readFileSync(path.join(f.dir,'review/设定审查.md'),'utf8'),/正面.*侧面.*背面.*表情.*动作/);
+      settingsApi.approveSettings(f.dir,{expectedSignature:review.signature,source:'用户实际核对单张角色设定图的五类内容'});
+    }
+  }
 });
 test('unapproved settings block image and video, exact review signature is required',async t=>{
   const f=await configured(t);
