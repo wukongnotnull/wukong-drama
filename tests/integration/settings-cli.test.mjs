@@ -1,0 +1,58 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { runCli } from '../../plugin/engine/cli/run.mjs';
+import { readProgress } from '../../plugin/engine/core/state.mjs';
+
+test('new-film settings review and signoff bind real materials before storyboard and generation',async t=>{
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'wkd-settings-cli-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+  const logs=[],errors=[],io={log:x=>logs.push(String(x)),error:x=>errors.push(String(x))};
+  const run=async args=>{logs.length=0;errors.length=0;return runCli(args,io);};
+  assert.equal(await run(['init','test','--dir',root]),0,errors.join('\n'));
+  const dir=path.join(root,'films/test'),file=path.join(dir,'settings.json');
+  assert.ok(fs.existsSync(file),'新片必须包含待检查的三类设定清单');
+  assert.equal(await run(['settings-review',dir]),2);
+  assert.equal(await run(['signoff',dir,'通过','--step','5']),1);
+  assert.equal(readProgress(dir).history.length,0);
+  const manifest={version:1,categories:Object.fromEntries(['characters','props','scenes'].map(k=>[k,{status:'not-applicable',reason:'纯色抽象片，无此类对象'}])),selections:[]};
+  fs.writeFileSync(file,JSON.stringify(manifest));
+  assert.equal(await run(['settings-review',dir]),0,errors.join('\n'));
+  const report=JSON.parse(logs[0]);assert.ok(report.signature);
+  assert.ok(fs.existsSync(path.join(dir,'review/设定审查.md')));
+  assert.equal(await run(['signoff',dir,'确认本片三类均不适用','--step','5','--settings-signature',report.signature]),0,errors.join('\n'));
+  assert.equal(readProgress(dir).step,5);assert.equal(readProgress(dir).history[0].gate,'④设定审查');
+  assert.equal(await run(['settings-init',dir]),1,'不能覆盖清单');
+  assert.ok(!fs.existsSync(path.join(dir,'assets/generated')),'审查不调用模型');
+});
+
+test('setting signoff archives shared references, reuse advances the next episode without a new human approval',async t=>{
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'wkd-setting-archive-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+  const logs=[],io={log:x=>logs.push(String(x)),error:x=>logs.push(String(x))};
+  const run=async args=>{logs.length=0;return runCli(args,io);};
+  const git=args=>execFileSync('git',args,{cwd:root,encoding:'utf8'});
+  git(['init','-b','main']);git(['config','user.name','Fixture']);git(['config','user.email','fixture@example.invalid']);
+  assert.equal(await run(['init-project',root]),0);
+  assert.equal(await run(['init','ep01','--dir',root]),0);
+  fs.mkdirSync(path.join(root,'assets'),{recursive:true});fs.writeFileSync(path.join(root,'assets/hero.png'),'reference');
+  const input=path.join(root,'input.json');fs.writeFileSync(input,JSON.stringify({kind:'character',id:'hero',version:'v1',name:'主角',description:'蓝衣',references:['assets/hero.png']}));
+  assert.equal(await run(['settings-save',root,'--file',input]),0,logs.join('\n'));
+  const manifest={version:1,categories:{characters:{status:'used'},props:{status:'not-applicable',reason:'无'},scenes:{status:'not-applicable',reason:'无'}},selections:[{kind:'character',id:'hero',version:'v1'}]};
+  const dir=path.join(root,'films/ep01');fs.writeFileSync(path.join(dir,'settings.json'),JSON.stringify(manifest));
+  assert.equal(await run(['settings-review',dir]),0);const report=JSON.parse(logs[0]);
+  assert.equal(await run(['signoff',dir,'用户确认蓝衣参考图','--step','5','--settings-signature',report.signature,'--approval-id','settings-first']),0,logs.join('\n'));
+  const tracked=git(['ls-files']);assert.match(tracked,/^characters\.json$/m);assert.match(tracked,/^assets\/hero\.png$/m);assert.match(tracked,/^\.wkd-settings\/approved\//m);
+  assert.doesNotMatch(tracked,/^input\.json$/m,'不替用户提交无关输入文件');
+  const before=fs.readFileSync(path.join(root,'characters.json'),'utf8');
+  assert.equal(await run(['init','ep02','--dir',root]),0);const next=path.join(root,'films/ep02');fs.writeFileSync(path.join(next,'settings.json'),JSON.stringify(manifest));
+  assert.equal(await run(['settings-review',next]),0);const review=JSON.parse(logs[0]);
+  assert.equal(await run(['settings-reuse',next,'--signature',review.signature]),0,logs.join('\n'));
+  assert.equal(readProgress(next).step,5);assert.match(readProgress(next).history.at(-1).note,/沿用|继承/);
+  assert.equal(fs.readFileSync(path.join(root,'characters.json'),'utf8'),before);
+  fs.writeFileSync(path.join(root,'assets/hero.png'),'changed reference');
+  assert.equal(await run(['settings-review',dir]),0);const changed=JSON.parse(logs[0]);
+  assert.equal(await run(['signoff',dir,'用户确认蓝衣参考图','--step','5','--settings-signature',changed.signature,'--approval-id','settings-first']),1,'旧批准编号不能绑定新的共享素材');
+  assert.equal(fs.readFileSync(path.join(root,'characters.json'),'utf8'),before,'冲突签批不能先更新设定批准');
+});

@@ -1,0 +1,20 @@
+{
+  "name": "wukong-drama",
+  "interface": {
+    "displayName": "wukong-drama · 模型短剧"
+  },
+  "plugins": [
+    {
+      "name": "wukong-drama",
+      "source": {
+        "source": "local",
+        "path": "./plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Creativity"
+    }
+  ]
+}

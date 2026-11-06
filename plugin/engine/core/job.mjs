@@ -1,0 +1,330 @@
+// 一次渲染任务：读 film.json → 解析风格 → 按镜头调度渲染（带缓存）→ 拼接 → 混音 → 导出。
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { spawnSync } from 'node:child_process';
+import { fileDigest, treeEvidence } from './evidence.mjs';
+import { digest } from './evidence.mjs';
+import { runStage, rememberArtifacts } from './operations.mjs';
+import { loadModule } from './registry.mjs';
+import { ShotCache, hashParts } from './cache.mjs';
+import { ENGINE_VERSION, ENGINE_ROOT, ensureDir } from './paths.mjs';
+import { run, drawLabel, concatVideo } from './ffmpeg.mjs';
+import { labelPngs } from './labels.mjs';
+import { prepareWordShots, writeWordReview } from './word-sync.mjs';
+import { buildFrameTimeline, TIMING_VERSION, assertVideo, recordTiming, timingFailure, requireTiming, checkOutputTiming, checkAnimaticTiming } from './timing.mjs';
+import { captureFinalGeneration, recordFinalArtifact } from '../delivery/final-delivery.mjs';
+import { assertCompatibleProgress } from './state.mjs';
+import { generationEvidence } from '../generation/generation.mjs';
+import { mixSoundtrack } from '../audio/soundtrack.mjs';
+
+import { outputSize, renderWorkers } from './render-profile.mjs';
+
+import { loadFilm } from './film-context.mjs';
+
+/** 构建传给管线的任务描述。 */
+function createRenderJob(ctx, { proxy = false, log }) {
+  const [W0, H0] = ctx.film.size;
+  const { W, H } = outputSize(ctx.film, proxy);
+  const fps = outputSize(ctx.film, proxy).fps;
+  const timeline = buildFrameTimeline(ctx.shots, fps);
+  const shots = ctx.shots.map((s, i) => ({ ...s, frames: timeline.shots[i].frames, startFrame: timeline.shots[i].startFrame }));
+  const workDir = ensureDir(path.join(ctx.variant.cacheDir, 'work'));
+  return prepareWordShots({
+    ...ctx,
+    shots, timeline,
+    W,
+    H,
+    designW: W0,
+    designH: H0,
+    fps,
+    proxy,
+    seed: ctx.film.seed,
+    workDir,
+    log,
+  });
+}
+
+/** 目录下所有文件（递归、排好序）；目录不存在时为空。 */
+function filesUnder(dir) {
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir, { recursive: true }).sort()
+    .map((f) => path.join(dir, f))
+    .filter((f) => fs.statSync(f).isFile());
+}
+
+function shotHash(job, shot) {
+  // 公共输入每次任务只读/哈希一次，避免107镜重复读取同一批素材与完整字体。
+  job.sharedHash ??= hashParts([
+    ENGINE_VERSION,
+    `${job.pipeline.name}@${job.pipeline.version}`,
+    ...filesUnder(job.pipeline.dir).filter((f) => !f.endsWith('.md')).map((f) => ({ file: f })),
+  ]);
+  return hashParts([
+    job.sharedHash,
+    { file: shot.path },
+    generationEvidence(job, shot),
+    { W: job.W, H: job.H, designW: job.designW, designH: job.designH, fps: job.fps, seed: job.seed, duration: shot.duration, start: shot.start, id: shot.id, timingVersion: TIMING_VERSION, frames: shot.frames, startFrame: shot.startFrame },
+  ]);
+}
+
+/** 各镜头当前的缓存哈希 { 镜头 id: 哈希 }（全分辨率），签批时记进进度，用来判断镜头后来有没有动过。 */
+export function shotHashes(filmDir, { aspect = null, log = () => {} } = {}) {
+  const ctx = loadFilm(filmDir, { aspect });
+  const job = createRenderJob(ctx, { log });
+  return Object.fromEntries(job.shots.map((s) => [s.id, shotHash(job, s)]));
+}
+
+/** 实际验证环境；缺少可核验的渲染器时不复用跨调用的画面证明。 */
+export function mainCheckConditions(filmDir) {
+  const ctx=loadFilm(filmDir),job=createRenderJob(ctx,{log:()=>{}});
+  try {
+    const commands=['ffmpeg','ffprobe'].map(name=>{const r=spawnSync(name,['-version'],{encoding:'utf8'});if(r.status!==0)throw new Error(name+' unavailable');return r.stdout;});
+    return {platform:[process.platform,process.arch,process.version],commands,size:ctx.film.size,fps:ctx.film.fps,sources:job.shots.map(s=>generationEvidence(job,s)),engine:treeEvidence(ENGINE_ROOT,(rel,ent)=>ent.isDirectory()&&['node_modules','.cache'].includes(ent.name))};
+  } catch { return null; }
+}
+
+async function pipelineModule(job) {
+  const mod = await loadModule(job.pipeline);
+  const chk = await mod.check();
+  if (!chk.ok) throw new Error(`管线 ${job.pipeline.name} 不可用：${chk.missing.join('、')}。${chk.hint || ''}`);
+  return mod;
+}
+
+/** 渲染所有（或指定）镜头并拼接成一条无声视频，返回其路径。 */
+export async function render(filmDir, { proxy = false, only = null, selected = null, daily = false, force = false, aspect = null, segmentsOnly = false, log = console.log } = {}) {
+  const ctx = loadFilm(filmDir, { aspect });
+  for (const id of selected || only || []) if (!ctx.shots.some(s => s.id === id)) throw new Error(`没有镜头 ${id}`);
+  renderWorkers({ proxy, daily }); // 在处理模型素材之前校验并发设置
+  const job = createRenderJob(ctx, { proxy, log });
+  job.daily = daily;
+  log(`[${ctx.variant.aspect} ${proxy?'小样':'高清'} · segments] 开始`);
+  log(`《${ctx.film.title}》${ctx.variant.isMain ? '' : `${ctx.variant.aspect} 副版 · `}风格 ${ctx.style.id} · 管线 ${job.pipeline.name} · ${job.W}×${job.H} @${job.fps}fps${proxy ? ' (预览)' : ''}`);
+
+  const cache = new ShotCache(ctx.filmDir, ctx.variant.cacheDir, { log });
+  const keyOf = (s) => (proxy ? `${s.id}-proxy` : s.id);
+  const todo = [];
+  const segments = [];
+  const hashes = {};
+  const selectedShots = job.shots.filter(s => !selected || selected.includes(s.id));
+  if(selected)job.generationShots=selectedShots;
+  for (const shot of selectedShots) {
+    const hash = shotHash(job, shot);
+    hashes[shot.id] = hash;
+    // --only 指定的镜头强制重渲；其余镜头一律走缓存（素材或镜头描述改变后哈希会变化）
+    const forced = force || (only && only.includes(shot.id));
+    const hit = !forced && cache.lookup(keyOf(shot), hash);
+    if (hit) {
+      try { assertVideo(hit, { fps: job.fps, frames: shot.frames }, { cacheDir: ctx.variant.cacheDir, fresh: !daily }); }
+      catch (e) {
+        cache.invalidate(keyOf(shot));
+        timingFailure(ctx, new Error(`${shot.id}：${e.message}；请重渲此镜头`), { proxy, log });
+        throw e;
+      }
+      segments.push(hit);
+      log(`  ${shot.id} 缓存命中`);
+    } else {
+      const out = cache.segmentPath(keyOf(shot), hash);
+      todo.push({ shot, hash, out });
+      segments.push(out);
+    }
+  }
+
+  if (todo.length) {
+    const mod = await pipelineModule(job);
+    const t0 = Date.now();
+    try {
+      await mod.renderShots(job, todo, { onDone: ({ shot, out }) => {
+        assertVideo(out, { fps: job.fps, frames: shot.frames }, { cacheDir: ctx.variant.cacheDir, fresh: true });
+        const actualHash = shotHash(job, shot);
+        hashes[shot.id] = actualHash;
+        cache.store(keyOf(shot), actualHash, out);
+      } });
+    } catch (e) {
+      timingFailure(ctx, e, { proxy, log });
+      throw e;
+    }
+    log(`  渲染 ${todo.length} 个镜头用时 ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+  }
+
+  const list = path.join(job.workDir, proxy ? 'concat-proxy.txt' : 'concat.txt');
+  const video = path.join(ctx.variant.cacheDir, proxy ? 'video-proxy.mp4' : 'video.mp4');
+  const shotSegments = selectedShots.map((s, i) => ({ id: s.id, start: s.startFrame / job.fps, duration: s.frames / job.fps, file: segments[i] }));
+  rememberArtifacts(ctx.filmDir,{stage:daily?'preview-segments':'segments',aspect:ctx.variant.aspect,proxy,signature:digest(hashes),value:shotSegments,outputs:segments});
+  if(segmentsOnly) return {video:null,job,segments:shotSegments};
+  try {
+    await runStage(ctx.filmDir,{stage:'concat',aspect:ctx.variant.aspect,proxy,force,signature:digest({fps:job.fps,segments:segments.map(file=>fileDigest(file))}),log,
+      run:async()=>{await concatVideo(segments,{fps:job.fps,list,out:video});return {value:video,outputs:[video]};},
+      validate:file=>{try{assertVideo(file,{fps:job.fps,frames:job.timeline.totalFrames},{cacheDir:ctx.variant.cacheDir,fresh:true});return true;}catch{return false;}}});
+  } catch (e) {
+    timingFailure(ctx, e, { proxy, log });
+    throw e;
+  }
+  recordTiming(ctx, video, segments, { proxy, log });
+  await writeWordReview(job, { video });
+  log(`  已拼接 → ${path.relative(ctx.filmDir, video)}`);
+  return { video, job, segments: shotSegments };
+}
+
+/** 日常局部审阅：不拼接整片，不生成整片验收证据。 */
+export async function preview(filmDir, { only = null, proxy = true, aspect = null, force = false, log = console.log } = {}) {
+  const { job, segments } = await render(filmDir, { proxy, selected: only, daily: true, segmentsOnly: true, aspect, force, log });
+  if(job.film.generation?.video?.generate_audio) await mixSoundtrack(filmDir,{aspect,log});
+  const mix = path.join(job.film.generation?.video?.generate_audio?job.variant.cacheDir:path.join(job.filmDir,'.cache'), 'mix.wav');
+  const audio = fs.existsSync(mix) ? fileDigest(mix) : null;
+  if (!audio) log('  ! 没有现成声轨，局部小样为无声；需要声音请先运行 wkd soundtrack');
+  const directory = path.join(job.filmDir, 'review', job.variant.review(proxy ? '局部小样' : '局部原画质'));
+  ensureDir(directory);
+  const outputs = [];
+  for (const segment of segments) {
+    const out = path.join(directory, segment.id + '.mp4');
+    const frames = job.shots.find(s => s.id === segment.id).frames;
+    await runStage(job.filmDir, { stage: 'preview:' + segment.id, aspect: job.variant.aspect, proxy, force,
+      signature: digest({ video: fileDigest(segment.file), audio, start: segment.start, duration: segment.duration }), log,
+      run: async () => {
+        const part = out.replace(/\.mp4$/, '.part.mp4');
+        try {
+          await run(audio ? ['-i', segment.file, '-ss', String(segment.start), '-i', mix,
+            '-map', '0:v:0', '-map', '1:a:0', '-c:v', 'copy', '-c:a', 'aac', '-af', 'apad', '-t', String(segment.duration), '-threads', '2', part]
+            : ['-i', segment.file, '-c', 'copy', part]);
+          assertVideo(part, { fps: job.fps, frames }, { cacheDir: job.variant.cacheDir, fresh: true });
+          fs.renameSync(part, out);
+        } finally { fs.rmSync(part, { force: true }); }
+        return { value: out, outputs: [out] };
+      },
+      validate: file => { try { assertVideo(file, { fps: job.fps, frames }, { cacheDir: job.variant.cacheDir }); return true; } catch { return false; } },
+    });
+    outputs.push(out);
+    log(`局部预览 ${segment.id}：${out}`);
+  }
+  log('  局部预览完成；整片拼接、字幕和音画检查请在完整预览/验收时运行');
+  return outputs;
+}
+
+/** 审阅副本写进片目录的 review/（不隐藏、体积小，聊天和访达里都能直接播放），返回绝对路径。 */
+export async function writeReview(filmDir, file, args) {
+  assertCompatibleProgress(filmDir);
+  const out = path.join(ensureDir(path.join(path.resolve(filmDir), 'review')), file);
+  await run([...args, out]);
+  return out;
+}
+
+/**
+ * 渲染静帧。
+ * at:    [{shot:'s02', t:1.5}]；省略则每镜取 frames 张（均匀分布）
+ * contactSheet: 把所有静帧拼成一张接触表，方便一次看完
+ */
+export async function stills(filmDir, { at = null, frames = 1, contactSheet = true, proxy = false, aspect = null, log = console.log } = {}) {
+  const ctx = loadFilm(filmDir, { aspect });
+  const job = createRenderJob(ctx, { proxy, log });
+  const mod = await pipelineModule(job);
+  let points = at;
+  if (!points) {
+    points = [];
+    for (const s of ctx.shots) {
+      for (let i = 0; i < frames; i++) {
+        const t = frames === 1 ? s.duration * 0.6 : (s.duration * (i + 0.5)) / frames;
+        points.push({ shot: s.id, t: +t.toFixed(3) });
+      }
+    }
+  }
+  const outDir = ensureDir(ctx.variant.stillsDir);
+  const files = await mod.renderStills(job, points, outDir);
+  await writeWordReview(job, { renderStills: (points, dir) => mod.renderStills(job, points, dir) });
+  log(`  静帧 ${files.length} 张 → ${path.relative(ctx.filmDir, outDir)}/`);
+  let contactSheetFile = null;
+  if (contactSheet && files.length) {
+    const cols = Math.min(files.length, frames > 1 ? frames : 3);
+    const rows = Math.ceil(files.length / cols);
+    contactSheetFile = path.join(outDir, 'sheet.jpg');
+    const tw = 640;
+    const th = Math.round((tw * job.H) / job.W);
+    // 标注取自静帧文件名（s02-2.70s.png）：管线按镜头分组渲染，文件顺序和 --at 的顺序可能不同，时间也可能被夹到镜头末尾
+    const tags = files.map((f) => path.basename(f, '.png').replace('-', ' '));
+    const labels = await labelPngs(tags, { size: 20, workDir: job.workDir, log, what: '接触表' });
+    const inputs = [...files, ...(labels || [])].flatMap((f) => ['-i', f]);
+    const scaled = files
+      .map((_, i) => (labels
+        ? `[${i}:v]scale=${tw}:${th}[s${i}];[s${i}][${files.length + i}:v]overlay=10:10[v${i}]`
+        : `[${i}:v]scale=${tw}:${th}${drawLabel(tags[i])}[v${i}]`))
+      .join(';');
+    const layout = files.map((_, i) => `${(i % cols) * tw}_${Math.floor(i / cols) * th}`).join('|');
+    // 只有一张时不拼图，缩放加标注就是接触表
+    const filter = files.length === 1
+      ? `${scaled};[v0]null`
+      : `${scaled};${files.map((_, i) => `[v${i}]`).join('')}xstack=inputs=${files.length}:layout=${layout}:fill=gray`;
+    await run([...inputs, '-filter_complex', filter, '-frames:v', '1', '-q:v', '3', contactSheetFile]);
+    log(`  接触表 → ${path.relative(ctx.filmDir, contactSheetFile)} (${cols}×${rows})`);
+  }
+  return { files, contactSheet: contactSheetFile };
+}
+
+const ANIMATIC_FPS = 12;
+
+/**
+ * 动态分镜：每镜一张代表帧，按镜头时长停留，叠加 wkd soundtrack 混好的声轨。
+ * 交给用户审的两样都放进 review/：动态分镜.mp4 和接触表.jpg（stills/sheet.jpg 照旧生成）。
+ */
+export async function animatic(filmDir, { proxy = false, aspect = null, log = console.log } = {}) {
+  const ctx = loadFilm(filmDir, { aspect });
+  const timeline = buildFrameTimeline(ctx.shots, ANIMATIC_FPS);
+  const { files, contactSheet: sheet } = await stills(filmDir, { frames: 1, proxy, aspect, log });
+  const reviewDir = ensureDir(path.join(ctx.filmDir, 'review'));
+  const contactSheet = sheet ? path.join(reviewDir, ctx.variant.review('接触表.jpg')) : null;
+  if (sheet) fs.copyFileSync(sheet, contactSheet);
+  const inputs = files.flatMap((f, i) => ['-loop', '1', '-framerate', String(ANIMATIC_FPS), '-t', String((timeline.shots[i].frames + 1) / ANIMATIC_FPS), '-i', f]);
+  const audio = path.join(ctx.filmDir, '.cache', 'mix.wav');
+  const hasAudio = fs.existsSync(audio);
+  if (hasAudio) inputs.push('-i', audio);
+  else log('  ! 没有 .cache/mix.wav，动态分镜不带声轨（先运行 wkd soundtrack）');
+  // 标注 PNG 排在图片和声轨之后，声轨的输入序号（files.length）不变
+  const labels = await labelPngs(ctx.shots.map((s) => s.id), { size: 28, workDir: path.join(ctx.variant.cacheDir, 'work'), log, what: '动态分镜' });
+  const labelBase = files.length + (hasAudio ? 1 : 0);
+  if (labels) inputs.push(...labels.flatMap((f) => ['-i', f]));
+  const frame = (i) => (labels
+    ? `[${i}:v]trim=end_frame=${timeline.shots[i].frames},setpts=PTS-STARTPTS,format=yuv420p[f${i}];[f${i}][${labelBase + i}:v]overlay=20:20,format=yuv420p[v${i}]`
+    : `[${i}:v]trim=end_frame=${timeline.shots[i].frames},setpts=PTS-STARTPTS,format=yuv420p${drawLabel(ctx.shots[i].id, { x: 20, y: 20, size: 28 })}[v${i}]`);
+  const filter = files.map((_, i) => frame(i)).join(';') + `;${files.map((_, i) => `[v${i}]`).join('')}concat=n=${files.length}:v=1:a=0[v]`;
+  const audioArgs = hasAudio ? ['-map', `${files.length}:a`, '-c:a', 'aac', '-b:a', '192k'] : [];
+  const out = path.join(reviewDir, ctx.variant.review('动态分镜.mp4'));
+  await run([...inputs, '-filter_complex', filter, '-map', '[v]', ...audioArgs, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', out]);
+  checkAnimaticTiming(ctx, out, timeline, log);
+  log(`  动态分镜 → ${path.relative(ctx.filmDir, out)}（${files.length} 镜 · ${ctx.totalDuration.toFixed(1)}s${hasAudio ? ' · 含声轨' : ''}）`);
+  return { file: out, contactSheet, hasAudio };
+}
+
+/** 导出：调用 film.json 里声明的各个导出器。 */
+export async function encodeOutputs(filmDir, { video, audio, timeline = null, proxy = false, formats = null, suffix = '', aspect = null, force = false, fontFiles = [], unknownReasons = [], log = console.log }) {
+  const ctx = loadFilm(filmDir, { aspect });
+  const wanted = formats || ctx.film.export?.formats || ['mp4'];
+  if(wanted.some(f=>f!=='jianying')) requireTiming(ctx,{proxy});
+  else {
+    if(!timeline) throw new Error('草稿需要可验证时间线');
+    const frames=buildFrameTimeline(ctx.shots,outputSize(ctx.film,proxy).fps);
+    for(const s of frames.shots) assertVideo(timeline.shots.find(t=>t.id===s.id)?.file,{fps:frames.fps,frames:s.frames},{cacheDir:ctx.variant.cacheDir,fresh:true});
+  }
+  const base = ctx.variant.exportName;
+  const outputs = [];
+  for (const name of wanted) {
+    const exp = ctx.registry.exporters.get(name);
+    if (!exp) throw new Error(`导出器 "${name}" 没有注册。可用: ${[...ctx.registry.exporters.keys()].join(', ')}`);
+    if (exp.status === 'planned') throw new Error(`导出器 "${name}" 还在规划中`);
+    const mod = await loadModule(exp);
+    const target = path.join(ctx.filmDir, `${base}${suffix}${proxy ? '-proxy' : ''}.${exp.ext}`);
+    let generation=null;
+    if(!proxy)try {
+      const kind=name==='jianying'?'draft':'video',flavor=kind==='video'?(suffix.includes('有字幕')?'burned':'clean'):null;
+      const slot=[ctx.variant.aspect,kind,name,...(flavor?[flavor]:[])].join('/'),projection={slot,name:base,...(kind==='draft'?{title:ctx.variant.title}:{}),...(kind==='video'?{size:ctx.film.size,fps:ctx.film.fps}:{}),...(flavor==='burned'?{bilingual:!!ctx.film.subtitles?.bilingual}:{})};
+      generation=captureFinalGeneration(ctx.filmDir,{slot,fontFiles,unknownReasons,inputFiles:[audio,...(timeline?[...timeline.shots,...timeline.tracks].map(t=>t.file):[])].filter(Boolean),descriptor:{slot,aspect:ctx.variant.aspect,kind,format:name,flavor,projection,contractDigest:digest(projection)}});
+    }catch(e){log(`  ! 交付来源未取证，保留导出任务：${e.message}`);}
+    // 导出器可返回实际产物路径（如写到片目录之外的剪映草稿）
+    const signature=digest({target,draftRoot:name==='jianying'?(process.env.WKD_JIANYING_DRAFTS||path.join(os.homedir(),'Movies/JianyingPro/User Data/Projects/com.lveditor.draft')):null,video:video&&fileDigest(video),audio:audio&&fileDigest(audio),timeline,inputs:timeline?[...timeline.shots,...timeline.tracks].map(t=>[t.file,fileDigest(t.file)]):[],exporter:treeEvidence(exp.dir),name,suffix,proxy,settings:ctx.film.export});
+    const out=await runStage(ctx.filmDir,{stage:name==='jianying'?'draft-export':`encode:${name}${suffix}`,aspect:ctx.variant.aspect,proxy,signature,force,log,
+      run:async()=>{const out=(await mod.encodeOutput({video,audio,out:target,fps:outputSize(ctx.film,proxy).fps,duration:buildFrameTimeline(ctx.shots,outputSize(ctx.film,proxy).fps).duration,proxy,timeline,force}))||target;return {value:out,outputs:[out]};}});
+    if (name === 'mp4') checkOutputTiming(ctx, out, { proxy, log });
+    if(generation)try{recordFinalArtifact(ctx.filmDir,{generation,path:out,stage:name==='jianying'?'draft-export':`encode:${name}${suffix}`,technical:{status:['mp4','jianying'].includes(name)?'passed':'unknown',checks:name==='jianying'?['native writer 时间线及素材校验']:name==='mp4'?['实际输出时间轴校验']:[],errors:[]}});}catch(e){log(`  ! 产物已生成，交付证据未存档，待核实；可 delivery --final --record 重试：${e.message}`);}
+    log(`  导出 ${name} → ${out.startsWith(ctx.filmDir + path.sep) ? path.relative(ctx.filmDir, out) : out}`);
+    outputs.push(out);
+  }
+  return outputs;
+}

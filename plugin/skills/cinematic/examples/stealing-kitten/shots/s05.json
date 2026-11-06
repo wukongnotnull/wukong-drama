@@ -1,0 +1,7 @@
+{
+  "image_prompt": "Photorealistic warm cinematic pet comedy, portrait 9:16. Medium low shot of kitten and chick facing each other on grass, two empty shell pieces behind near nest. Intact egg no longer exists. Use approved identity and environment references, natural anatomy, no text, no extra animals. Egg reference board shows alternative states, never multiple eggs.",
+  "video_prompt": "Target edited duration 1.5 seconds. Kitten takes one short backward step toward foreground-right. Chick immediately follows one small step, looking up. Preserve relative sizes and direction. Locked camera, stable identities, natural movement, no internal cuts, preserve light and spatial continuity.",
+  "references": [],
+  "revision": "v2",
+  "video": "media/video/9x16/s05.mp4"
+}

@@ -1,0 +1,8 @@
+{
+  "name": "generation",
+  "version": "0.1.0",
+  "description": "图片/视频模型生成持久源素材，按审批与预算提交任务，再经 ffmpeg 规范化进入声音、字幕和交付流程。",
+  "entry": "index.mjs",
+  "status": "stable",
+  "requires": ["ffmpeg", "ffprobe"]
+}

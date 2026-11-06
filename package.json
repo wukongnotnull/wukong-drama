@@ -1,0 +1,23 @@
+{
+  "name": "wukong-drama-repo",
+  "private": true,
+  "description": "wukong-drama 插件仓库：图片与视频模型驱动的短剧制作、后期与分发",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "setup": "npm ci --prefix plugin/engine --no-audit --no-fund && node tools/stamp-deps.mjs",
+    "test": "node --test tests/unit/*.test.mjs tests/integration/*.test.mjs",
+    "test:jianying": "node tools/test-jianying.mjs",
+    "smoke": "node --test tests/integration/generation-pipeline.test.mjs tests/integration/model-delivery.test.mjs",
+    "lint": "node tools/lint.mjs && node tools/build-agent-docs.mjs --check && npm run check:architecture",
+    "catalog": "node tools/build-catalog.mjs",
+    "build:portable": "node tools/build-portable.mjs",
+    "install:agent": "node tools/install-agent.mjs",
+    "check:architecture": "node tools/check-architecture.mjs",
+    "build:plugin": "node tools/build-plugin.mjs"
+  },
+  "devDependencies": {
+    "acorn": "8.19.0"
+  }
+}

@@ -1,0 +1,31 @@
+node_modules/
+films/
+frames/
+.cache/
+*.mp4
+*.mov
+*.webm
+!plugin/skills/cinematic/examples/stealing-kitten/media/**/*.mp4
+!plugin/skills/cinematic/examples/stealing-kitten/media/**/*.wav
+.DS_Store
+__pycache__/
+# 在 examples/ 里制作示范片时的进度与中间产物（配音、静帧、审片文件），只提交源文件
+plugin/skills/*/examples/*/.wkd/
+plugin/skills/*/examples/*/stills/
+plugin/skills/*/examples/*/review/
+plugin/skills/*/examples/*/audio/generated/
+plugin/skills/*/examples/*/*.gif
+plugin/skills/*/examples/*/*_字幕.srt
+plugin/skills/*/examples/*/*_英文字幕.srt
+
+# 可移植发布构建产物
+dist/
+
+# 本地凭证与开发产物不进入仓库或分发包
+.env
+.env.*
+!.env.example
+*.pem
+outputs/
+tmp/
+.tmp-home/

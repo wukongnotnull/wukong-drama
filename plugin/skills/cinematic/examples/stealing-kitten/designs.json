@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "purpose": "已验收作品的制作档案，仅供学习；不是新项目活动设定或生成授权",
+  "items": [
+    {
+      "kind": "character",
+      "id": "kitten",
+      "version": "v1",
+      "name": "小猫",
+      "state": "全片",
+      "importance": "key",
+      "description": "约10周橘白短毛幼猫；橘色虎斑额头与背部，白口鼻、胸腹及四爪，橘色环纹尾、橘尾尖，榛绿色眼睛、粉鼻；自然猫体态，不穿衣、不戴项圈。全片锁定毛色分区、眼色、体型。",
+      "references": [
+        "media/designs/kitten.png"
+      ]
+    },
+    {
+      "kind": "character",
+      "id": "chick",
+      "version": "v1",
+      "name": "小鸟",
+      "state": "破壳后",
+      "importance": "key",
+      "description": "鹌鹑样早成雏鸟，淡奶黄与浅棕绒毛，深棕背部纵纹和冠纹，深色眼睛、短棕喙、桃棕细腿；站立时约为小猫腿高的一半，保持自然解剖。",
+      "references": [
+        "media/designs/chick.png"
+      ]
+    },
+    {
+      "kind": "prop",
+      "id": "egg",
+      "version": "v1-intact",
+      "name": "鸟蛋",
+      "state": "完整未破壳",
+      "importance": "key",
+      "description": "全片只有一枚约2.8厘米长的象牙白棕斑鸟蛋；哑光薄壳、卵形略尖端。参考图上半部为本状态，下半部是后续状态，不代表额外鸟蛋。",
+      "references": [
+        "media/designs/egg-states.png"
+      ]
+    },
+    {
+      "kind": "prop",
+      "id": "egg",
+      "version": "v1-hatched",
+      "name": "鸟蛋",
+      "state": "破壳后",
+      "importance": "key",
+      "description": "与完整版本同一枚蛋，颜色、斑点和尺度连续；破壳后为两块主要空壳，断缘自然。参考图下半部为本状态。只出现自然破壳，无蛋液。",
+      "references": [
+        "media/designs/egg-states.png"
+      ]
+    },
+    {
+      "kind": "prop",
+      "id": "nest",
+      "version": "v1",
+      "name": "鸟巢",
+      "state": "全片",
+      "importance": "key",
+      "description": "约9厘米宽的浅草巢，由细干草与少量细枝组成，置于庭院树根凹处，低边缘可由小猫前爪够到；保持形状、位置和材质。参考图为空巢环境基准，开场在巢中放一枚蛋。",
+      "references": [
+        "media/designs/garden.png"
+      ]
+    },
+    {
+      "kind": "scene",
+      "id": "garden",
+      "version": "v1",
+      "name": "庭院树根",
+      "state": "暖光白天",
+      "importance": "key",
+      "description": "低机位庭院；树干在后左，低树根向中间延伸，鸟巢位于根旁凹处；前方及右侧草地是小猫后退和小鸟追随的动作区。光线来自左上方，背景绿叶虚化。参考图为环境构造，正式镜头另行按9:16与16:9构图，不拉伸此图。",
+      "references": [
+        "media/designs/garden.png"
+      ]
+    }
+  ]
+}

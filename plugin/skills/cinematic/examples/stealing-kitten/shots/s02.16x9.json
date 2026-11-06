@@ -1,0 +1,7 @@
+{
+  "image_prompt": "Photorealistic warm cinematic pet comedy, landscape 16:9. EXTREME COMPOSITION CONSTRAINT: tight close-up of ONLY one white kitten front paw, nest rim and the single intact speckled egg. Paw and egg fill at least 70 percent of portrait frame. Cat head, face, torso and tail COMPLETELY OUTSIDE frame. No establishing garden view. Warm side light; matching grass and nest materials. Reference kitten is for paw fur identity only, environment reference is for materials only, NOT its framing. Egg remains inside low nest at starting moment as paw touches it, before being drawn out.",
+  "video_prompt": "Target edited duration 2 seconds. Continue reaching action: paw gently draws egg over low rim onto adjacent grass in front of paws, then guards it. Egg barely trembles at end, still intact. Locked camera, stable identities, natural movement, no internal cuts, preserve light and spatial continuity.",
+  "references": [],
+  "revision": "v3-tight",
+  "video": "media/video/16x9/s02.mp4"
+}

@@ -1,0 +1,7 @@
+{
+  "image_prompt": "Photorealistic warm cinematic pet comedy, portrait 9:16. EXTREME MACRO: exactly one speckled egg fills most of portrait frame on grass. Egg has its first jagged opening with a tiny glimpse of approved chick down emerging, only one egg and its own shell. A white kitten paw can be a tiny completely blurred background fragment. Cat face, head, torso and tail COMPLETELY OUTSIDE frame. No wide garden, no full cat. Use approved chick texture and egg pattern. Reference environment is for color and grass texture ONLY, never copy its layout as a wide shot.",
+  "video_prompt": "Target edited duration 1.5 seconds. Single egg shell cracks; approved chick head emerges between two main shell pieces. No extra eggs, do not show alternate reference-board states simultaneously. Locked camera, stable identities, natural movement, no internal cuts, preserve light and spatial continuity.",
+  "references": [],
+  "revision": "v3-tight",
+  "video": "media/video/9x16/s03.mp4"
+}

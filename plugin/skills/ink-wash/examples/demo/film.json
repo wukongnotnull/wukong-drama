@@ -1,0 +1,47 @@
+{
+  "title": "晨雾小舟",
+  "style": "ink-wash",
+  "size": [
+    1280,
+    720
+  ],
+  "fps": 30,
+  "seed": 72,
+  "shots": [
+    {
+      "id": "s01",
+      "file": "shots/s01.json",
+      "duration": 4,
+      "size": "远景",
+      "note": "晨雾中的小舟缓缓前行"
+    }
+  ],
+  "audio": {
+    "voice_source": "none",
+    "voices": [],
+    "tracks": []
+  },
+  "export": {
+    "formats": [
+      "mp4"
+    ],
+    "name": "out"
+  },
+  "generation": {
+    "image": {
+      "provider": "openai",
+      "quality": "medium"
+    },
+    "video": {
+      "provider": "seedance",
+      "resolution": "720p",
+      "generate_audio": false
+    },
+    "budget": {
+      "image_usd": 1,
+      "video_cny": 60,
+      "max_image_tasks": 1,
+      "max_video_tasks": 1
+    }
+  }
+}

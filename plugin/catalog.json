@@ -1,0 +1,98 @@
+{
+  "_generated": "由 tools/build-catalog.mjs 生成，请勿手改",
+  "progress": {
+    "done": 3,
+    "total": 3
+  },
+  "categories": {
+    "dongfang": "东方神韵",
+    "katong": "卡通漫画",
+    "dianying": "真人影视"
+  },
+  "styles": [
+    {
+      "id": "ink-wash",
+      "order": 1,
+      "name": "水墨写意",
+      "name_en": "Chinese Ink Wash",
+      "category": "dongfang",
+      "categoryName": "东方神韵",
+      "status": "available",
+      "pipeline": "generation",
+      "keywords": [
+        "水墨",
+        "国风",
+        "山水",
+        "写意",
+        "留白",
+        "题字",
+        "印章",
+        "诗意",
+        "ink",
+        "chinese painting"
+      ],
+      "best_for": [
+        "诗意短片",
+        "品牌片头",
+        "人文叙事",
+        "节气 / 节日",
+        "慢节奏画外音"
+      ],
+      "skill": "skills/ink-wash",
+      "examples": [
+        "skills/ink-wash/examples/demo"
+      ]
+    },
+    {
+      "id": "anime",
+      "order": 2,
+      "name": "二维卡通短剧",
+      "name_en": "Anime",
+      "category": "katong",
+      "categoryName": "卡通漫画",
+      "status": "available",
+      "pipeline": "generation",
+      "keywords": [
+        "二维卡通短剧",
+        "anime"
+      ],
+      "best_for": [
+        "二维手绘卡通",
+        "清晰轮廓",
+        "可控夸张形变与角色连续性",
+        "适合轻喜剧",
+        "奇幻和角色故事。具体项目的美术方向以简报与参考图审阅为准。"
+      ],
+      "skill": "skills/anime",
+      "examples": [
+        "skills/anime/examples/demo"
+      ]
+    },
+    {
+      "id": "cinematic",
+      "order": 3,
+      "name": "真人影视短剧",
+      "name_en": "Cinematic",
+      "category": "dianying",
+      "categoryName": "真人影视",
+      "status": "available",
+      "pipeline": "generation",
+      "keywords": [
+        "真人影视短剧",
+        "cinematic"
+      ],
+      "best_for": [
+        "自然人物",
+        "真实场景",
+        "镜头语言与角色连续性",
+        "适合生活",
+        "悬疑和剧情短剧。具体项目的美术方向以简报与参考图审阅为准。"
+      ],
+      "skill": "skills/cinematic",
+      "examples": [
+        "skills/cinematic/examples/demo",
+        "skills/cinematic/examples/stealing-kitten"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "image_prompt": "Photorealistic warm cinematic pet comedy, landscape 16:9. TIGHT FELINE REACTION CLOSE-UP: kitten face fills at least 75 percent of portrait frame, ears visible. Crop just below chin; paws, chest, torso and tail outside frame. Kitten eyes looking down, ears angled outward, startled natural expression, mouth slightly open. Background completely soft green bokeh with warm left light, NO readable nest. Identity matches approved kitten, no text or accessories.",
+  "video_prompt": "Target edited duration 1.5 seconds. Kitten freezes, eyes widen slightly and ears swivel sideways, then makes one soft short meow. Keep natural feline anatomy. Locked camera, stable identities, natural movement, no internal cuts, preserve light and spatial continuity.",
+  "references": [],
+  "revision": "v4-recover",
+  "video": "media/video/16x9/s04.mp4"
+}

@@ -1,0 +1,106 @@
+// 镜头级渲染缓存：镜头描述、模型素材、渲染参数都没变，就直接复用上次的片段。
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+import { ensureDir } from './paths.mjs';
+import { atomicJson } from './evidence.mjs';
+import { updateHashFromFile } from './file-hash.mjs';
+
+// 文件部件只哈希文件名和内容，不哈希绝对路径：插件每个版本装在不同目录，
+// 带上路径会让每次更新后所有镜头缓存失效。各部件按顺序哈希，内容前带长度，
+// 文件互换内容或内容在相邻文件间挪动都会改变哈希。
+export function hashParts(parts) {
+  const h = crypto.createHash('sha256');
+  for (const p of parts) {
+    if (p && typeof p === 'object' && p.file) {
+      if(fs.existsSync(p.file))updateHashFromFile(h,p.file,{prefix:size=>`file:${path.basename(p.file)}:${size}\n`});
+      else h.update(`file:${path.basename(p.file)}:MISSING\n`);
+    } else {
+      h.update(typeof p === 'string' ? p : JSON.stringify(p));
+    }
+    h.update('\0');
+  }
+  return h.digest('hex').slice(0, 16);
+}
+
+/**
+ * 字体 CSS 的哈希部件：url('file://…') 换成字体文件本身（按文件名和内容哈希），
+ * 片目录、用户目录挪了位置也得到同样的哈希。签批记录的镜头哈希进 git，不能依赖绝对路径。
+ */
+export function fontCssParts(css) {
+  const files = [];
+  const text = css.replace(/url\('file:\/\/([^']+)'\)/g, (_, encoded) => {
+    const file=fileURLToPath('file://'+encoded);
+    files.push({ file });
+    return `url(${path.basename(file)})`;
+  });
+  return [text, ...files];
+}
+
+export class ShotCache {
+  /** dir：缓存目录，缺省为片目录的 .cache/（副版传 .cache/<画幅后缀>/） */
+  constructor(filmDir, dir = path.join(filmDir, '.cache'), { log = console.warn } = {}) {
+    this.dir = ensureDir(dir);
+    this.file = path.join(this.dir, 'manifest.json');
+    this.data = { shots: {} };
+    let text;
+    try { text = fs.readFileSync(this.file, 'utf8'); }
+    catch (e) { if (e.code !== 'ENOENT') throw e; }
+    if (text !== undefined) {
+      try {
+        const data = JSON.parse(text);
+        const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+        if (!object(data) || !object(data.shots) || !Object.values(data.shots).every(hit =>
+          object(hit) && typeof hit.hash === 'string' && hit.hash.length && typeof hit.file === 'string' && hit.file.length)) {
+          throw new SyntaxError('清单结构无效：需要 shots 对象和片段 hash/file');
+        }
+        this.data = data;
+      } catch (e) {
+        if (!(e instanceof SyntaxError)) throw e;
+        log(`  ! 缓存索引失效：${this.file}（${e.message}）；相关镜头需重新生成`);
+      }
+    }
+    // 上次进程被强杀时留下的半成品
+    const seg = path.join(this.dir, 'segments');
+    if (fs.existsSync(seg)) for (const f of fs.readdirSync(seg)) if (f.endsWith('.part')) fs.rmSync(path.join(seg, f), { force: true });
+  }
+  segmentPath(key, hash) {
+    return path.join(ensureDir(path.join(this.dir, 'segments')), `${key}-${hash}.mp4`);
+  }
+  /** 命中则返回片段路径，否则返回 null。 */
+  lookup(key, hash) {
+    const hit = this.data.shots[key];
+    if (hit && hit.hash === hash && fs.existsSync(hit.file)) return hit.file;
+    return null;
+  }
+  invalidate(key) {
+    const next = { ...this.data, shots: { ...this.data.shots } };
+    delete next.shots[key];
+    atomicJson(this.file, next);
+    this.data = next;
+  }
+  store(key, hash, file) {
+    const old = this.data.shots[key];
+    const next = { ...this.data, shots: { ...this.data.shots, [key]: { hash, file, at: new Date().toISOString() } } };
+    atomicJson(this.file, next);
+    this.data = next;
+    if (old && old.file !== file && fs.existsSync(old.file)) fs.rmSync(old.file);
+  }
+}
+
+/** 只清当前画幅可重新生成的渲染产物；不递归清空.cache（里面有声音与恢复记录）。 */
+export function cleanRenderCache(dir) {
+  const names = ['segments', 'video-checks', 'manifest.json', 'timing.json', 'timing-proxy.json',
+    'video.mp4', 'video-proxy.mp4', 'video-subtitled.mp4', 'video-subtitled-proxy.mp4'];
+  const removed = [];
+  for (const name of names) {
+    const file = path.join(dir, name);
+    if (fs.existsSync(file)) { fs.rmSync(file, { recursive: true, force: true }); removed.push(file); }
+  }
+  for (const name of ['fonts']) {
+    const file = path.join(dir, 'work', name);
+    if (fs.existsSync(file)) { fs.rmSync(file, { recursive: true, force: true }); removed.push(file); }
+  }
+  return removed;
+}

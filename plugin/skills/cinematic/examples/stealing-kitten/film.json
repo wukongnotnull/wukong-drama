@@ -1,0 +1,144 @@
+{
+  "title": "偷蛋的小猫",
+  "style": "cinematic",
+  "size": [
+    1080,
+    1920
+  ],
+  "fps": 24,
+  "variants": {
+    "16:9": {}
+  },
+  "subtitles": {
+    "mode": "none",
+    "bilingual": false
+  },
+  "seed": 72,
+  "shots": [
+    {
+      "id": "s01",
+      "file": "shots/s01.json",
+      "duration": 1.5416666666666667,
+      "size": "中景",
+      "note": "起：发现目标",
+      "full_bleed": true
+    },
+    {
+      "id": "s02",
+      "file": "shots/s02.json",
+      "duration": 2.0,
+      "size": "特写",
+      "note": "承：偷蛋得手",
+      "full_bleed": true
+    },
+    {
+      "id": "s03",
+      "file": "shots/s03.json",
+      "duration": 1.625,
+      "size": "大特写",
+      "note": "转：破壳",
+      "full_bleed": true
+    },
+    {
+      "id": "s04",
+      "file": "shots/s04.json",
+      "duration": 1.5,
+      "size": "近景",
+      "note": "转：小猫愣住",
+      "full_bleed": true
+    },
+    {
+      "id": "s05",
+      "file": "shots/s05.json",
+      "duration": 1.6666666666666667,
+      "size": "中景",
+      "note": "合：认妈追随",
+      "full_bleed": true
+    },
+    {
+      "id": "s06",
+      "file": "shots/s06.json",
+      "duration": 1.6666666666666667,
+      "size": "全景",
+      "note": "合：临时妈妈",
+      "full_bleed": true
+    }
+  ],
+  "audio": {
+    "voice_source": "none",
+    "voices": [],
+    "tracks": [
+      {
+        "file": "media/audio/bgm.wav",
+        "start": 0,
+        "gain": 0
+      },
+      {
+        "file": "media/audio/ambience.wav",
+        "start": 0,
+        "gain": 0
+      },
+      {
+        "file": "media/audio/sfx.wav",
+        "start": 0,
+        "gain": 0
+      }
+    ]
+  },
+  "export": {
+    "formats": [
+      "mp4"
+    ],
+    "name": "replay"
+  },
+  "generation": {
+    "image": {
+      "provider": "openai"
+    },
+    "video": {
+      "provider": "seedance",
+      "resolution": "720p",
+      "generate_audio": false
+    },
+    "budget": {
+      "image_usd": 0,
+      "video_cny": 0,
+      "max_image_tasks": 0,
+      "max_video_tasks": 0
+    }
+  },
+  "cues": {
+    "草叶": [
+      1.5,
+      1.7
+    ],
+    "拨蛋": [
+      2.4,
+      2.6
+    ],
+    "轻裂纹": [
+      3.7,
+      3.9000000000000004
+    ],
+    "破壳": [
+      4.2,
+      4.4
+    ],
+    "鸟鸣": [
+      5.6,
+      5.8
+    ],
+    "猫叫": [
+      6.2,
+      6.4
+    ],
+    "追随": [
+      7.5,
+      7.7
+    ],
+    "依偎": [
+      8.7,
+      8.899999999999999
+    ]
+  }
+}

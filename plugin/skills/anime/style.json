@@ -1,0 +1,35 @@
+{
+  "$schema": "../../engine/schemas/style.schema.json",
+  "id": "anime",
+  "name": "二维卡通短剧",
+  "name_en": "Anime",
+  "category": "katong",
+  "order": 2,
+  "engine": ">=0.1.0",
+  "pipeline": "generation",
+  "fps": 24,
+  "aspects": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "keywords": [
+    "二维卡通短剧",
+    "anime"
+  ],
+  "qc": {
+    "diff_max": 80,
+    "cuts_max": 4
+  },
+  "subtitles": {
+    "font": {
+      "family": "Noto Sans SC",
+      "fallback": [
+        "PingFang SC"
+      ]
+    },
+    "size": 0.045,
+    "color": "#FFFFFF",
+    "bottom": 0.08
+  }
+}

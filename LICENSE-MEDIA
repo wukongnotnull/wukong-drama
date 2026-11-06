@@ -1,0 +1,17 @@
+User films and generated media are not bundled with wukong-drama, except for the
+explicitly authorized Stealing Kitten showcase described below.
+Bundled example scripts, prompts and story documents follow the repository MIT License.
+
+Media imported or generated for a user's film remains part of that user's project.
+Keep the applicable source licenses and generation-service terms with those assets.
+Downloaded third-party fonts retain their own licenses, including SIL Open Font License 1.1.
+
+Stealing Kitten (偷蛋的小猫), accepted and designated as a plugin showcase by the
+user on 2026-11-05, is included under skills/cinematic/examples/stealing-kitten/.
+Its selected generated images, videos and synthesized audio are supplied for
+plugin demonstration, offline reuse and production learning. The code MIT License
+does not automatically apply to these media; applicable generation-service terms
+and other rights continue to apply. This notice does not assert unrestricted
+commercial rights. See that example's MEDIA.md and provenance.json for sources,
+scope and file hashes. Private project history, credentials, active generation
+approvals and personal editor drafts are excluded.

@@ -1,0 +1,30 @@
+{
+  "name": "wukong-drama",
+  "owner": {
+    "name": "悟空非空也"
+  },
+  "metadata": {
+    "description": "模型短剧制作：用 GPT Image 等图片模型与 Seedance 等视频模型生成画面，保留导演、声音、字幕、审片和交付流程。",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "wukong-drama",
+      "source": "./plugin",
+      "description": "模型短剧制作：用 GPT Image 等图片模型与 Seedance 等视频模型生成画面，保留导演、声音、字幕、审片和交付流程。",
+      "version": "0.1.0",
+      "category": "Creativity",
+      "keywords": [
+        "video",
+        "drama",
+        "image-generation",
+        "video-generation",
+        "gpt-image",
+        "seedance",
+        "ink-wash",
+        "anime",
+        "cinematic"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,164 @@
+{
+  "version": 1,
+  "title": "偷蛋的小猫",
+  "style": "cinematic",
+  "approvalDate": "2026-11-05",
+  "inclusionAuthorization": "用户在作品四项交付验收后明确要求：将它作为插件的示范片",
+  "originalDelivery": {
+    "status": "accepted",
+    "acceptedCount": 4,
+    "items": [
+      "9:16成片",
+      "16:9成片",
+      "9:16剪映草稿",
+      "16:9剪映草稿"
+    ]
+  },
+  "generation": {
+    "image": "Codex内置imagegen；实际设定图与分镜参考经用户审查",
+    "videoModel": "doubao-seedance-2-5-260628",
+    "videoTasks": 2,
+    "tasksDescription": "每种画幅各一次10秒多镜头生成；横屏参考竖屏定稿，未将24秒源素材当10秒提交",
+    "nativeResolution": "720p",
+    "nativeFps": 24,
+    "sourceFramesEach": 241,
+    "editedFrames": 240,
+    "durationSeconds": 10,
+    "audio": "原创程序合成配乐与拟声音效；无人声、无字幕；非动物实录"
+  },
+  "postproduction": {
+    "finalSize": {
+      "9:16": [
+        1080,
+        1920
+      ],
+      "16:9": [
+        1920,
+        1080
+      ]
+    },
+    "note": "输出为1080p编码尺寸，原生生成素材为720p；每镜不超过2秒，实际切点与最初分镜目标略有偏移并已签批。",
+    "importedClips": "每段末尾保留2帧本地重复帧余量，仅供15fps小样取整；正式时间轴按film.json裁至240帧。"
+  },
+  "distribution": {
+    "mediaLicense": "本片媒体按用户指定收录为本插件示范及学习资料，不自动适用代码MIT；详见包内LICENSE-MEDIA及示例说明。",
+    "privateData": "个人工程Git历史、活动审批、API凭证、服务商任务ID、签名下载链接及个人剪映草稿均未收录。"
+  },
+  "files": [
+    {
+      "path": "media/audio/ambience.wav",
+      "bytes": 1920044,
+      "sha256": "75235affbc99d2077b3de07e02dd36732f174e7b3c956ba3fc0968d991b9b959"
+    },
+    {
+      "path": "media/audio/bgm.wav",
+      "bytes": 1920044,
+      "sha256": "8643664c1ab007debbd2b05a68c996629962fc98fb6178cd79c814ca7f3ae57a"
+    },
+    {
+      "path": "media/audio/sfx.wav",
+      "bytes": 1920044,
+      "sha256": "82cc18392761dd1d5d655e3eb8782dc341fdd9ed109e709014ae1e29813298cc"
+    },
+    {
+      "path": "media/designs/chick.png",
+      "bytes": 1837353,
+      "sha256": "c7fdda025798bae8eb8a84654d5aba97dbaa177fbcc04ca2b97a7fb2267364b9"
+    },
+    {
+      "path": "media/designs/egg-states.png",
+      "bytes": 2034697,
+      "sha256": "eda03768bc1cdcb675b1e8da13390ebe43e6afe6fbb6a7fbb8b1b3497a4bc9b5"
+    },
+    {
+      "path": "media/designs/garden.png",
+      "bytes": 2450215,
+      "sha256": "f1971eb368d6ee96bad70b7611df48911ab358012ca6404b850b0b340527de2d"
+    },
+    {
+      "path": "media/designs/kitten.png",
+      "bytes": 1883368,
+      "sha256": "d0d52f4789ae349e4bbe1caa90b1fdd44046852385b50a23fc28440499df3e24"
+    },
+    {
+      "path": "media/final/landscape.mp4",
+      "bytes": 9676038,
+      "sha256": "2e6413d9c9c65bc9edcb0dfde9a5e13c4d920529ad7f84e84e99920646140950"
+    },
+    {
+      "path": "media/final/portrait.mp4",
+      "bytes": 10902002,
+      "sha256": "518375a8a53809b73c43cb2ffbe02b3c76f19148d0381f5b613eb624fb548bd9"
+    },
+    {
+      "path": "media/posters/landscape.jpg",
+      "bytes": 34961,
+      "sha256": "4adca06d8cdb11da84b2150afa8f42950e7c56149bd8b4d5fe7e594f86d0855b"
+    },
+    {
+      "path": "media/posters/portrait.jpg",
+      "bytes": 37538,
+      "sha256": "321775f2a2a385a14c72573e7546ae121951856d30c2662b10b7c0aad9f01eb4"
+    },
+    {
+      "path": "media/video/16x9/s01.mp4",
+      "bytes": 933017,
+      "sha256": "7e6f4099bb734805836ebb3913e2ee7f8f35a7ef7aa084e5ded7409fcde88484"
+    },
+    {
+      "path": "media/video/16x9/s02.mp4",
+      "bytes": 1116994,
+      "sha256": "186f02ab8e082b39a068cd945f0d765c1704feee746ff3cc7299c938d56e8444"
+    },
+    {
+      "path": "media/video/16x9/s03.mp4",
+      "bytes": 507080,
+      "sha256": "1712d330e507f6214bac52134fdb07ce2791138d3d3ce32781b2588865bfc517"
+    },
+    {
+      "path": "media/video/16x9/s04.mp4",
+      "bytes": 690989,
+      "sha256": "d13ac5daba77ba92ca68bfcb87b274de0821e7429f3edc78d202a18f061ca6cb"
+    },
+    {
+      "path": "media/video/16x9/s05.mp4",
+      "bytes": 986412,
+      "sha256": "d8a0974f7109553458d0b66fd5934ecab96b98231ffceae195c7dcb272e371f0"
+    },
+    {
+      "path": "media/video/16x9/s06.mp4",
+      "bytes": 831736,
+      "sha256": "37f48b777f2f807bb30847ffce92156495b12a38941277397395234c7346d851"
+    },
+    {
+      "path": "media/video/9x16/s01.mp4",
+      "bytes": 1063509,
+      "sha256": "4fc8444067d58248310e793d178785a59c6002aadec58e676642e1bf1ec404b9"
+    },
+    {
+      "path": "media/video/9x16/s02.mp4",
+      "bytes": 1340347,
+      "sha256": "cef9e9edff4a856cb21951feb4c1442090a36fa398bc7a988a4449b4a8e1919d"
+    },
+    {
+      "path": "media/video/9x16/s03.mp4",
+      "bytes": 636955,
+      "sha256": "a3c3cb4ab89f54fc527eb1ff121b27ebec9ac0a46fd1043659a7444f821fa829"
+    },
+    {
+      "path": "media/video/9x16/s04.mp4",
+      "bytes": 853091,
+      "sha256": "6352a9db032f976266e49b7c2814d1c708cfb753344818465bbd234cefa6c4ed"
+    },
+    {
+      "path": "media/video/9x16/s05.mp4",
+      "bytes": 1090263,
+      "sha256": "cd43e008180e4d08dc670072c25b795401897ce8c0f996b90fb1676209291247"
+    },
+    {
+      "path": "media/video/9x16/s06.mp4",
+      "bytes": 855692,
+      "sha256": "a7058d23a5c82550974c978b6903a8bdbb2c6fcc7a0affa93b8cf706751f141e"
+    }
+  ]
+}

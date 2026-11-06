@@ -1,0 +1,55 @@
+{
+  "$schema": "../../engine/schemas/style.schema.json",
+  "id": "ink-wash",
+  "name": "水墨写意",
+  "name_en": "Chinese Ink Wash",
+  "category": "dongfang",
+  "order": 1,
+  "engine": ">=0.1.0",
+  "pipeline": "generation",
+  "fps": 30,
+  "aspects": [
+    "16:9",
+    "9:16"
+  ],
+  "keywords": [
+    "水墨",
+    "国风",
+    "山水",
+    "写意",
+    "留白",
+    "题字",
+    "印章",
+    "诗意",
+    "ink",
+    "chinese painting"
+  ],
+  "qc": {
+    "whitespace_min": 0.4,
+    "paper": "#F2EDE3",
+    "paper_tol": 22,
+    "accent": "#B22C22",
+    "accent_tol": 70,
+    "accent_max": 0.03,
+    "diff_max": 18,
+    "cuts_max": 2,
+    "skip_start": 0.5
+  },
+  "subtitles": {
+    "font": {
+      "family": "Ma Shan Zheng",
+      "fallback": [
+        "STKaiti",
+        "Kaiti SC",
+        "serif"
+      ]
+    },
+    "size": 0.05,
+    "color": "#2B2B2B",
+    "stroke": {
+      "color": "rgba(242,237,227,0.9)",
+      "width": 0.12
+    },
+    "bottom": 0.1
+  }
+}

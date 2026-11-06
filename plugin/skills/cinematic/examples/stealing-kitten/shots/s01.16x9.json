@@ -1,0 +1,7 @@
+{
+  "image_prompt": "Photorealistic warm cinematic pet comedy, landscape 16:9. Medium shot of kitten crouched beside root nest, eyes on the single intact egg, one front paw poised at rim. Use approved identity and environment references, natural anatomy, no text, no extra animals. Egg reference board shows alternative states, never multiple eggs.",
+  "video_prompt": "Target edited duration 2 seconds. Kitten glances at the egg and reaches one paw into nest. One small action, no approach walk. Locked camera, stable identities, natural movement, no internal cuts, preserve light and spatial continuity.",
+  "references": [],
+  "revision": "v2",
+  "video": "media/video/16x9/s01.mp4"
+}

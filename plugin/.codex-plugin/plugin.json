@@ -1,0 +1,28 @@
+{
+  "name": "wukong-drama",
+  "version": "0.1.0",
+  "description": "模型短剧制作：用 GPT Image 等图片模型与 Seedance 等视频模型生成画面，保留导演、声音、字幕、审片和交付流程。",
+  "author": {
+    "name": "悟空非空也"
+  },
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "wukong-drama · 模型短剧",
+    "shortDescription": "用图片与视频模型制作短剧",
+    "longDescription": "从制作简报、画风、剧本、分镜、角色参考图到视频生成，再完成声音、字幕、审片、横竖版和剪映草稿交付。图片可使用助手自带工具或自定义 API，视频使用已配置的 Seedance 模型。需要能读写文件、运行制作工具的环境、Node.js 20+、ffmpeg；生成服务凭证由环境变量提供，也支持本地素材导入。",
+    "developerName": "悟空非空也",
+    "category": "Creativity",
+    "capabilities": [],
+    "defaultPrompt": [
+      "用 wukong-drama 检查并配置本地短剧制作环境",
+      "用 wukong-drama 拍一支关于秋天离别的水墨短剧，20 秒",
+      "用 wukong-drama 推荐适合这段故事的画面风格"
+    ]
+  },
+  "extensions": {
+    "com.openai": {
+      "onboardingSkill": "./skills/setup/SKILL.md"
+    }
+  }
+}
