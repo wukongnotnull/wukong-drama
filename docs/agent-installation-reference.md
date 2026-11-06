@@ -2,17 +2,19 @@
 
 普通用户先看[安装和开始使用](agent-installation.md)。这里保留具体命令、安装位置和检查规则，供执行安装时查阅。
 
-当前本地构建包版本为 0.1.0，portable 文件为 `wukong-drama-agent-skills-v0.1.0.zip` 与同一次构建的 SHA256SUMS；原生私有插件包为 `wukong-drama-plugin-v0.1.0.zip` 与相邻的 .sha256 文件。本项目尚未发布 GitHub Release。两个包的用途不同：Codex 本地原生安装直接使用仓库中的 marketplace，其他支持 Agent Skills 的工具可使用 portable 包。
+当前本地构建包版本为 0.1.0，portable 文件为 `wukong-drama-agent-skills-v0.1.0.zip` 与同一次构建的 SHA256SUMS；原生插件包为 `wukong-drama-plugin-v0.1.0.zip` 与相邻的 .sha256 文件。下载见 [GitHub Release](https://github.com/wukongnotnull/wukong-drama/releases/tag/v0.1.0)。两个包的用途不同：Codex 本地原生安装直接使用仓库中的 marketplace，其他支持 Agent Skills 的工具可使用 portable 包。
 
 ## Codex 本地原生安装
 
-在已支持 `codex plugin` 的 Codex CLI 中，先核对源码和依赖，再注册这个独立来源并安装：
+在已支持 `codex plugin` 的 Codex CLI 中，注册对应版本的仓库来源并安装：
 
 ```text
-codex plugin marketplace add "<仓库绝对路径>" --json
+codex plugin marketplace add wukongnotnull/wukong-drama --ref v0.1.0 --json
 codex plugin add wukong-drama@wukong-drama --json
 codex plugin list --marketplace wukong-drama --json
 ```
+
+本地源码安装时，将第一条命令的来源改为仓库绝对路径，并去掉 --ref。
 
 使用安装结果返回的插件目录运行 `node <安装目录>/engine/bin/wkd.mjs check`，并用 `list styles` 检查风格发现。`check` 只验证本地工具，不调用图片/视频服务，不证明账号权限、密钥或额度可用。已安装的 wukong-animation 保持独立，不删除或覆盖其插件、marketplace 或用户目录。
 
@@ -28,7 +30,7 @@ CLI 的 installed/enabled 状态与磁盘技能存在，不能单独证明当前
 
 ## 升级诊断
 
-安装诊断可显示当前包身份；本项目尚未发布 GitHub Release。
+安装诊断显示当前包身份；发布版本和安装包见 [GitHub Release](https://github.com/wukongnotnull/wukong-drama/releases)。
 
 可从当前安装的引擎入口执行 `node <安装目录>/engine/bin/wkd.mjs check --upgrade`，机器读取追加 `--json`。诊断只读且离线，显示插件/引擎版本、包格式、依赖身份及对应升级指引；远端最新版本和宿主是否已加载新版显示未知。发现失效的其他 marketplace 时提示手动核对，不自动改写配置。
 

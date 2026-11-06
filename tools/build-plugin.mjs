@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Native private plugin archive. No network, installation, or dependency bundling.
+// Native plugin archive. No network, installation, or dependency bundling.
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';

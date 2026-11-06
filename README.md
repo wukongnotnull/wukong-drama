@@ -28,6 +28,8 @@
 
 ## 开始制作
 
+[下载 0.1.0 安装包](https://github.com/wukongnotnull/wukong-drama/releases/tag/v0.1.0)
+
 1. 按[安装说明](docs/agent-installation.md)，让助手装好插件、检查工具。
 2. 按[账号和模型说明](docs/providers.md)，准备生成方式和预算。已有素材也能沿用。
 3. 准备好后，把故事和保存位置告诉助手，例如：

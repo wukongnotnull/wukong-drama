@@ -28,7 +28,7 @@ test('plugin identities and model-drama metadata agree across host manifests', (
     assert.equal(manifest.version, portable.version);
     assert.equal(manifest.description, portable.description);
     assert.match(manifest.description, /图片.*视频.*模型|模型.*短剧/);
-    assert.equal(manifest.repository, undefined, 'do not claim an uncreated repository');
+    assert.equal(manifest.repository, 'https://github.com/wukongnotnull/wukong-drama');
   }
   const presentation = portable.extensions['com.openai'].interface;
   assert.deepEqual(codex.interface, presentation);
