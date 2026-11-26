@@ -6,7 +6,7 @@ import { loadProfiles } from './install-agent.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const agents=loadProfiles().agents;
 const version=JSON.parse(fs.readFileSync(path.join(root,'plugin/plugin.json'),'utf8')).version;
-const publishedVersion='0.1.0';
+const publishedVersion='0.2.0';
 const reference=`# 安装操作参考（给助手和维护者）
 
 普通用户先看[安装和开始使用](agent-installation.md)。这里保留具体命令、安装位置和检查规则，供执行安装时查阅。
