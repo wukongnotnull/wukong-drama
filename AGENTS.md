@@ -9,7 +9,7 @@
 - 用 rg 查找文件和引用。先查原因，再做最小修改；功能变更先补有意义的测试，文档和配置修改核对实际内容与引用。
 - 源码在 plugin，工具在 tools，宿主适配在 distribution，测试在 tests。制作流程以[导演技能](plugin/skills/director/SKILL.md)为准。
 - 修改安装说明时，编辑 tools/build-agent-docs.mjs 并重新生成；修改画风后运行 npm run catalog。不要只改生成结果。
-- 插件和引擎同步编号，以 plugin/plugin.json 为准，按[版本规则](docs/VERSIONING.md)更新清单和锁文件。
+- 修改版本号前，先说明建议版本并得到用户明确允许，不随功能或文档修改自行升版。获准后，插件和引擎同步编号，以 plugin/plugin.json 为准，按[版本规则](docs/VERSIONING.md)更新清单和锁文件；spec 默认通过不代替升版授权。
 
 ## 验证与打包
 

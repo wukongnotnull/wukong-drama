@@ -1,5 +1,7 @@
 # 版本怎么递增
 
+**先说明建议版本并征得用户明确允许，再修改版本号。** 功能、文档修改或开发构建不自动升版，spec 通过也不代表允许升版。
+
 插件与引擎使用同一个版本号，从 **0.1.0** 起算。已发布版本和安装包见 [GitHub Release](https://github.com/wukongnotnull/wukong-drama/releases)。
 
 | 改了什么 | 下一个版本示例 |
